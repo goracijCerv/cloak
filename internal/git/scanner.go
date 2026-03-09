@@ -21,8 +21,8 @@ func GetFiles(dir *string) []string {
 
 	fmt.Printf("Buscando en: %s\n", finalPath)
 
-	//obteniendo los archivos untracked
-	cmd := exec.Command("git", "ls-files", "--others")
+	//obteniendo los archivos modificados
+	cmd := exec.Command("git", "ls-files", "--modified")
 	cmd.Dir = finalPath
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -31,8 +31,8 @@ func GetFiles(dir *string) []string {
 	//los añadimos a la lista de los archivos pendientes
 	finalFiles = append(finalFiles, strings.Fields(string(output))...)
 
-	//obteniendo los archivos modificados
-	cmd = exec.Command("git", "ls-files", "--modified")
+	//obteniendo los archivos untracked
+	cmd = exec.Command("git", "ls-files", "--others")
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		log.Fatalf("cmd.Run() failed with %s\nOutput: %s", err, string(output))
