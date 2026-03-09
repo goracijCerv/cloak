@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cloak/internal/fileops"
 	"cloak/internal/git"
 	"flag"
 	"fmt"
@@ -14,6 +15,7 @@ func main() {
 	}
 	gitDirectory := flag.String("d", actualDirectory, "Directorio al que se quiere hacer el backup de los cambios untracked")
 	outPutDirectory := flag.String("o", "", "Directorio donde se creara el backup de los cambios untracked")
+	messageComentari := flag.String("m", "", "Mensaje adicional para el folder")
 
 	flag.Parse()
 
@@ -30,4 +32,5 @@ func main() {
 	filesToCopy := git.GetFiles(gitDirectory)
 
 	fmt.Println(filesToCopy)
+	fileops.CreateNewBackUp(filesToCopy, *outPutDirectory, *messageComentari, gitDirectory)
 }
