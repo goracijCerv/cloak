@@ -60,7 +60,7 @@ func copiarArchivo(rutaOrigen string, dirDestiono string, raizProyecto string) e
 	//obtenemos el path relativo
 	rutaRelativa, err := filepath.Rel(raizProyecto, rutaOrigen)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to compute relative path for %q: %w", rutaOrigen, err)
 	}
 	//se convierte en _ los / del path por ejemplo cdm/cloack/main a cdm_cloack_main
 	nuevoNombre := strings.ReplaceAll(rutaRelativa, string(filepath.Separator), "_")
@@ -83,79 +83,88 @@ func copiarArchivo(rutaOrigen string, dirDestiono string, raizProyecto string) e
 	//Empezamos a hacer la compia
 	origen, err := os.Open(rutaOrigen)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open source file %q: %w", rutaOrigen, err)
 	}
 
 	defer origen.Close()
 
 	destino, err := os.Create(rutaDestino)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create destination file %q: %w", rutaDestino, err)
 	}
 
 	defer destino.Close()
 
-	_, err = io.Copy(destino, origen)
-	return err
+	if _, err = io.Copy(destino, origen); err != nil {
+		return fmt.Errorf("failed to copy %q to %q: %w", rutaOrigen, rutaDestino, err)
+	}
+
+	return nil
 
 }
 
-func CreateNewBackUp(files []string, outPutDir string, messagge string, dirOrigen *string) {
-
-	var finalOutPutDir string
+// Obtenemos el directorio final del backup
+func buildOutPutDir(outPutDir string, dirOrigen *string, message string) (string, error) {
 	if outPutDir != "" {
-		finalOutPutDir = filepath.Clean(outPutDir)
-	} else {
-		parentDirectory := filepath.Dir(*dirOrigen)
-		folderName := filepath.Base(*dirOrigen)
-		if parentDirectory == "." {
-			log.Fatalln("No tiene Folder padre")
-		}
-		if err := os.Chdir(parentDirectory); err != nil {
-			log.Fatal("Error changing directory")
-
-		}
-
-		dirPadre, err := os.Getwd()
-		if err != nil {
-			log.Fatal("Error al obtener el directorio")
-		}
-
-		fmt.Println(dirPadre)
-
-		//obtener fecha
-		currentTime := time.Now()
-		fecha := fmt.Sprintf("%d-%d-%d_%d-%d-%d",
-			currentTime.Year(), currentTime.Month(), currentTime.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second())
-
-		if messagge != "" {
-			messagge = sanitizeFolderName(messagge, 0)
-			finalOutPutDir = fmt.Sprintf("/backup/[%s][%s]-%s", folderName, messagge, fecha)
-		} else {
-			finalOutPutDir = fmt.Sprintf("/backup/[%s]%s", folderName, fecha)
-		}
-		finalOutPutDir = filepath.Join(dirPadre, finalOutPutDir)
-		finalOutPutDir = filepath.Clean(finalOutPutDir)
+		return filepath.Clean(outPutDir), nil
 	}
 
-	fmt.Println(finalOutPutDir)
+	parentDir := filepath.Dir(*dirOrigen)
+	if parentDir == "." {
+		return "", fmt.Errorf("source directory has no parent directory")
+	}
+
+	folderName := filepath.Base(*dirOrigen)
+
+	currentTime := time.Now()
+	timestamp := fmt.Sprintf("%d-%02d-%02d_%02d-%02d-%02d",
+		currentTime.Year(), currentTime.Month(), currentTime.Day(),
+		currentTime.Hour(), currentTime.Minute(), currentTime.Second())
+
+	var backupFolderName string
+
+	if message != "" {
+		safeMessage := sanitizeFolderName(message, 0)
+		backupFolderName = fmt.Sprintf("[%s][%s]-%s", folderName, safeMessage, timestamp)
+	} else {
+		backupFolderName = fmt.Sprintf("[%s]%s", folderName, timestamp)
+	}
+	return filepath.Clean(filepath.Join(parentDir, "backup", backupFolderName)), nil
+}
+
+func CreateNewBackUp(files []string, outPutDir string, messagge string, dirOrigen *string) error {
+	if len(files) == 0 {
+		return fmt.Errorf("no files provided to back up")
+	}
+
+	finalOutPutDir, err := buildOutPutDir(outPutDir, dirOrigen, messagge)
+	if err != nil {
+		return fmt.Errorf("failed to resolve output directory: %w", err)
+	}
+
+	fmt.Println("Backup destination:", finalOutPutDir)
 
 	//Crear el direcotrio
 	if _, err := os.Stat(finalOutPutDir); errors.Is(err, os.ErrNotExist) {
 		if err := os.MkdirAll(finalOutPutDir, os.ModePerm); err != nil {
-			log.Fatalln(err)
+			log.Fatalln("Faild to make the back up folder directory", err)
+			return fmt.Errorf("failed to create backup directory %q: %w", finalOutPutDir, err)
 		}
 	}
 
 	//copiar archivos
+	var copyErrors []string
 	for i := range files {
-		err := copiarArchivo(files[i], finalOutPutDir, *dirOrigen)
-		if err != nil {
-			log.Fatalf("Error al tratar de copiar el archivo %s en el directorio %s\n", files[i], finalOutPutDir)
+		if err := copiarArchivo(files[i], finalOutPutDir, *dirOrigen); err != nil {
+			copyErrors = append(copyErrors, err.Error())
+			log.Printf("WARNING: %s", err)
 		}
 	}
-
-	log.Println("Archivos copiados")
+	if len(copyErrors) > 0 {
+		return fmt.Errorf("backup completed with %d error(s): \n%s", len(copyErrors), strings.Join(copyErrors, "\n"))
+	}
+	log.Println("Backup completed successfully to:", finalOutPutDir)
+	return nil
 }
 
 //Estructura de la direccion que debe hacer
