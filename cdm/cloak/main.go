@@ -42,6 +42,9 @@ func main() {
 			case "directory path must be absolute":
 				fmt.Println("The directory path is not an absolute path")
 				return
+			case "must be run inside a git repository":
+				fmt.Println("Error: Cloak must be run inside a git repository")
+				return
 			default:
 				fmt.Println("Something went wrong when getting the files, please check the cloak logs file")
 				return
@@ -73,6 +76,10 @@ func main() {
 			return
 		case "directory path must be absolute":
 			fmt.Println("The directory path is not an absolute path")
+			return
+
+		case "must be run inside a git repository":
+			fmt.Println("Error: Cloak must be run inside a git repository")
 			return
 		default:
 			fmt.Println("Something went wrong when getting the files, please check the cloak logs file")
