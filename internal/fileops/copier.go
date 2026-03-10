@@ -104,7 +104,7 @@ func copiarArchivo(rutaOrigen string, dirDestiono string, raizProyecto string) e
 }
 
 // Obtenemos el directorio final del backup
-func buildOutPutDir(outPutDir string, dirOrigen *string, message string) (string, error) {
+func BuildOutPutDir(outPutDir string, dirOrigen *string, message string) (string, error) {
 	if outPutDir != "" {
 		return filepath.Clean(outPutDir), nil
 	}
@@ -137,7 +137,7 @@ func CreateNewBackUp(files []string, outPutDir string, messagge string, dirOrige
 		return fmt.Errorf("no files provided to back up")
 	}
 
-	finalOutPutDir, err := buildOutPutDir(outPutDir, dirOrigen, messagge)
+	finalOutPutDir, err := BuildOutPutDir(outPutDir, dirOrigen, messagge)
 	if err != nil {
 		return fmt.Errorf("failed to resolve output directory: %w", err)
 	}

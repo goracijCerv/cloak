@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -27,7 +28,41 @@ func main() {
 	gitDirectory := flag.String("d", actualDirectory, "Git repository directory to back up untracked changes from.")
 	outPutDirectory := flag.String("o", "", "Directory where the backuo will be created (defaults to parent of -d backup folder).")
 	messageComment := flag.String("m", "", "Optional label to include in the backup folder name.")
+	dryRun := flag.Bool("dry-run", false, "Show the files to copy and the backup directory without making any changes.")
 	flag.Parse()
+
+	if *dryRun {
+		filesToCopy, err := git.GetFiles(gitDirectory)
+		if err != nil {
+			log.Fatalln("Failed to get files from git:", err)
+			switch err.Error() {
+			case "directory path must not be empty":
+				fmt.Println("The directory path is empty string")
+				return
+			case "directory path must be absolute":
+				fmt.Println("The directory path is not an absolute path")
+				return
+			default:
+				fmt.Println("Something went wrong when getting the files, please check the cloak logs file")
+				return
+			}
+
+		}
+		finalOutPutDir, err := fileops.BuildOutPutDir(*outPutDirectory, gitDirectory, *messageComment)
+		if err != nil {
+			fmt.Println("Unable to solve output directory")
+			fmt.Println("Please check the cloak logs file to see more details of the error")
+			return
+		}
+
+		fmt.Printf("The output directory will be: %s \n", filepath.Clean(finalOutPutDir))
+		fmt.Println("A list of the files that will be copy:")
+		for i := range filesToCopy {
+			fmt.Printf("--- %s\n", filepath.Clean(filesToCopy[i]))
+		}
+
+		return
+	}
 
 	filesToCopy, err := git.GetFiles(gitDirectory)
 	if err != nil {
@@ -62,7 +97,7 @@ func main() {
 			return
 		case strings.Contains(errorString, "failed to resolve output directory"):
 			fmt.Println("Unable to solve output directory")
-			fmt.Println("Please check the cloak logs file to see more detail error")
+			fmt.Println("Please check the cloak logs file to see more details of the error")
 			return
 		case strings.Contains(errorString, "failed to create backup directory"):
 			fmt.Println("Failed to create backup directory")
