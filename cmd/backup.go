@@ -69,6 +69,12 @@ func executeDryRun() {
 		return
 	}
 	fmt.Printf("The output directory will be %s \n", filepath.Clean(finalOutPutDir))
+	if len(filesToCopy) == 0 {
+		//log.Println("No files to copy")
+		fmt.Println("Nothing to back up: no untracked or modified files found.")
+		return
+	}
+
 	fmt.Println("A list of the files that will be copied:")
 	for i := range filesToCopy {
 		fmt.Printf("--- %s\n", filepath.Clean(filesToCopy[i]))
