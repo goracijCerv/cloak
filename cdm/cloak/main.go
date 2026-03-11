@@ -14,7 +14,7 @@ import (
 func main() {
 	logFile, err := os.OpenFile("cloak_logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		log.Fatalln("Failed to open log file:", err)
+		log.Println("ERROR: Failed to open log file: ", err)
 	}
 	defer logFile.Close()
 	log.SetOutput(logFile)
@@ -22,7 +22,7 @@ func main() {
 
 	actualDirectory, err := os.Getwd()
 	if err != nil {
-		log.Fatalln("Failed to get current working directory:", err)
+		log.Println("ERROR: Failed to get current working directory:", err)
 	}
 
 	gitDirectory := flag.String("d", actualDirectory, "Git repository directory to back up untracked changes from.")
@@ -34,7 +34,7 @@ func main() {
 	if *dryRun {
 		filesToCopy, err := git.GetFiles(gitDirectory)
 		if err != nil {
-			log.Fatalln("Failed to get files from git:", err)
+			log.Println("ERROR: Failed to get files from git:", err)
 			switch err.Error() {
 			case "directory path must not be empty":
 				fmt.Println("The directory path is empty string")
@@ -53,6 +53,7 @@ func main() {
 		}
 		finalOutPutDir, err := fileops.BuildOutPutDir(*outPutDirectory, gitDirectory, *messageComment)
 		if err != nil {
+			log.Println("ERROR: Failed to get output directory: ", err)
 			fmt.Println("Unable to solve output directory")
 			fmt.Println("Please check the cloak logs file to see more details of the error")
 			return
@@ -69,7 +70,7 @@ func main() {
 
 	filesToCopy, err := git.GetFiles(gitDirectory)
 	if err != nil {
-		log.Fatalln("Failed to get files from git:", err)
+		log.Fatalln("ERROR: Failed to get files from git:", err)
 		switch err.Error() {
 		case "directory path must not be empty":
 			fmt.Println("The directory path is empty string")
@@ -88,7 +89,7 @@ func main() {
 	}
 
 	if len(filesToCopy) == 0 {
-		log.Println("No files to copy")
+		log.Println("ERROR: No files to copy")
 		fmt.Println("Nothing to back up: no untracked or modified files found.")
 		return
 	}
@@ -96,7 +97,7 @@ func main() {
 	//fmt.Println("Files to back up:", filesToCopy)
 
 	if err := fileops.CreateNewBackUp(filesToCopy, *outPutDirectory, *messageComment, gitDirectory); err != nil {
-		log.Fatalln("Backup failed:", err)
+		log.Println("ERROR: Backup failed:", err)
 		errorString := err.Error()
 		switch {
 		case strings.Contains(errorString, "no files provided to back up"):

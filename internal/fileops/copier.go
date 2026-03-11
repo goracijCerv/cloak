@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -147,7 +146,6 @@ func CreateNewBackUp(files []string, outPutDir string, messagge string, dirOrige
 	//Crear el direcotrio
 	if _, err := os.Stat(finalOutPutDir); errors.Is(err, os.ErrNotExist) {
 		if err := os.MkdirAll(finalOutPutDir, os.ModePerm); err != nil {
-			log.Fatalln("Faild to make the back up folder directory", err)
 			return fmt.Errorf("failed to create backup directory %q: %w", finalOutPutDir, err)
 		}
 	}
@@ -157,13 +155,13 @@ func CreateNewBackUp(files []string, outPutDir string, messagge string, dirOrige
 	for i := range files {
 		if err := copiarArchivo(files[i], finalOutPutDir, *dirOrigen); err != nil {
 			copyErrors = append(copyErrors, err.Error())
-			log.Printf("WARNING: %s", err)
+
 		}
 	}
 	if len(copyErrors) > 0 {
 		return fmt.Errorf("backup completed with %d error(s): \n%s", len(copyErrors), strings.Join(copyErrors, "\n"))
 	}
-	log.Println("Backup completed successfully to:", finalOutPutDir)
+
 	return nil
 }
 
