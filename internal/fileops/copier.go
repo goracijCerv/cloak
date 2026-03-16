@@ -165,6 +165,32 @@ func CreateNewBackUp(files []string, outPutDir string, messagge string, dirOrige
 	return nil
 }
 
+func getFilesRoutesFromBackup(backupDir string) {
+	if backupDir == "" {
+		fmt.Errorf("no backup folder")
+	}
+
+	info, err := os.Stat(backupDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Errorf("route does not exist")
+		}
+		fmt.Errorf("something weird happen %w", err)
+	}
+
+	if !info.IsDir() {
+		fmt.Errorf("route is not an folder")
+	}
+	files, err := os.ReadDir(backupDir)
+	if err != nil {
+		fmt.Errorf("Something went wrong: %w", err)
+	}
+
+	for _, file := range files {
+
+	}
+}
+
 //Estructura de la direccion que debe hacer
 /*
  lugarDondeEstaRepo/backup/MensajeOpcional*[NombreRepo]Fecha
