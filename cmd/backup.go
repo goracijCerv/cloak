@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"cloak/internal/fileops"
-	"cloak/internal/git"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/goracijCerv/cloak/internal/fileops"
+	"github.com/goracijCerv/cloak/internal/git"
 	"github.com/spf13/cobra"
 )
 

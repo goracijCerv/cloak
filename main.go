@@ -1,6 +1,6 @@
 package main
 
-import "cloak/cmd"
+import "github.com/goracijCerv/cloak/cmd"
 
 func main() {
 	cmd.Execute()
