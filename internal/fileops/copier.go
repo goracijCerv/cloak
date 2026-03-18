@@ -274,7 +274,7 @@ func RestorBackUp(backupDir string, originalDir string) error {
 	}
 
 	if len(destinyRoutes) == 0 {
-		return fmt.Errorf("something went weong getting the destiny routes")
+		return fmt.Errorf("something went wrong getting the destiny routes")
 	}
 
 	//copiar archivos
