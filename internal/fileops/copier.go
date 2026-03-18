@@ -165,30 +165,131 @@ func CreateNewBackUp(files []string, outPutDir string, messagge string, dirOrige
 	return nil
 }
 
-func getFilesRoutesFromBackup(backupDir string) {
+// Obtiene las rutas destio al repositorio original, basado en los archivos del backupdir
+func getDestinyRoutes(backupDir string, originalDir string) ([]string, error) {
 	if backupDir == "" {
-		fmt.Errorf("no backup folder")
+		return nil, fmt.Errorf("no backup folder")
 	}
 
 	info, err := os.Stat(backupDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Errorf("route does not exist")
+			return nil, fmt.Errorf("route does not exist")
 		}
-		fmt.Errorf("something weird happen %w", err)
+		return nil, fmt.Errorf("something weird happen %w", err)
 	}
 
 	if !info.IsDir() {
-		fmt.Errorf("route is not an folder")
+		return nil, fmt.Errorf("route is not an folder")
 	}
 	files, err := os.ReadDir(backupDir)
 	if err != nil {
-		fmt.Errorf("Something went wrong: %w", err)
+		return nil, fmt.Errorf("Something went wrong: %w", err)
+	}
+	var finalRoutes []string
+	for in := range files {
+		baseRute := strings.ReplaceAll(files[in].Name(), "_", string(filepath.Separator))
+		rutaDestino := filepath.Clean(filepath.Join(originalDir, baseRute))
+		finalRoutes = append(finalRoutes, rutaDestino)
 	}
 
-	for _, file := range files {
+	// for i := range finalRoutes {
+	// 	fmt.Println(finalRoutes[i])
+	// }
+	return finalRoutes, nil
+}
 
+func getFilesRoutesFromBackUp(backupDir string) ([]string, error) {
+	if backupDir == "" {
+		return nil, fmt.Errorf("empty path")
 	}
+
+	files, err := os.ReadDir(backupDir)
+	if err != nil {
+		return nil, fmt.Errorf("Something went wrong: %w", err)
+	}
+
+	var paths []string
+	for _, i := range files {
+		fullpath := filepath.Clean(filepath.Join(backupDir, i.Name()))
+		paths = append(paths, fullpath)
+	}
+
+	return paths, nil
+}
+
+func restoreFile(fileToRestore string, destinyPath string) error {
+	if fileToRestore == "" || destinyPath == "" {
+		return fmt.Errorf("empty path")
+	}
+
+	//Verificamos que exista el directorio
+	dir := filepath.Dir(destinyPath)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create directories %q: %w", dir, err)
+	}
+
+	//Empezamos a hacer la compia
+	origen, err := os.Open(fileToRestore)
+	if err != nil {
+		return fmt.Errorf("failed to open source file %q: %w", fileToRestore, err)
+	}
+
+	defer origen.Close()
+
+	destino, err := os.Create(destinyPath)
+	if err != nil {
+		return fmt.Errorf("failed to create destination file %q: %w", destinyPath, err)
+	}
+
+	defer destino.Close()
+
+	if _, err = io.Copy(destino, origen); err != nil {
+		return fmt.Errorf("failed to restore %q to %q: %w", fileToRestore, destinyPath, err)
+	}
+
+	return nil
+}
+
+func RestorBackUp(backupDir string, originalDir string) error {
+	if backupDir == "" || originalDir == "" {
+		return fmt.Errorf("empty path")
+	}
+
+	//opteniendo las rutas de los archvios a copiar del backup
+	backUpRoutes, err := getFilesRoutesFromBackUp(backupDir)
+	if err != nil {
+		return err
+	}
+
+	if len(backUpRoutes) == 0 {
+		return fmt.Errorf("no backup files to restore")
+	}
+
+	//obteniendo las rutas destino de la carpeta orignal
+	destinyRoutes, err := getDestinyRoutes(backupDir, originalDir)
+
+	if err != nil {
+		return err
+	}
+
+	if len(destinyRoutes) == 0 {
+		return fmt.Errorf("something went weong getting the destiny routes")
+	}
+
+	//copiar archivos
+	var copyErrors []string
+	for i := range backUpRoutes {
+		if err := restoreFile(backUpRoutes[i], destinyRoutes[i]); err != nil {
+			copyErrors = append(copyErrors, err.Error())
+
+		}
+	}
+	if len(copyErrors) > 0 {
+		return fmt.Errorf("restore completed with %d error(s): \n%s", len(copyErrors), strings.Join(copyErrors, "\n"))
+	}
+
+	return nil
 }
 
 //Estructura de la direccion que debe hacer
