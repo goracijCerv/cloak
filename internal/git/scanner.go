@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Obtener la lista de archivos que estan untracked, modificados y staged
+// Get the list of files that are untracked, modified, and staged
 func GetFiles(dir *string) ([]string, error) {
 
 	if dir == nil || *dir == "" {
@@ -18,20 +18,18 @@ func GetFiles(dir *string) ([]string, error) {
 		return nil, fmt.Errorf("directory path must be absolute")
 	}
 
-	// Clean elimina redundancias como // o ./
+	// Clean removes redundancies like // or ./
 	finalPath := filepath.Clean(*dir)
 
-	// Verificar que sea un repositorio de git
+	//Verify that it is a git repository
 	if err := checkIsGitRepo(finalPath); err != nil {
 		return nil, fmt.Errorf("must be run inside a git repository: %w", err)
 	}
 
-	fmt.Printf("Searching in: %s\n", finalPath)
-
-	// Usamos un mapa para evitar archivos duplicados (ej. un archivo que está staged Y modificado)
+	// We use a map to avoid duplicate files (e.g., a file that is staged and modified)
 	uniqueFiles := make(map[string]struct{})
 
-	// 1. Archivos Staged (Modificados)
+	// 1. Staged Files (Modified)
 	modifiedStagedFiles, err := getStagedFiles(finalPath, "M")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get modified staged files: %w", err)
@@ -40,7 +38,7 @@ func GetFiles(dir *string) ([]string, error) {
 		uniqueFiles[f] = struct{}{}
 	}
 
-	// 2. Archivos Staged (Añadidos/Nuevos)
+	// 2. Staged Files (Added/New)
 	untrackedStagedFiles, err := getStagedFiles(finalPath, "A")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get added staged files: %w", err)
@@ -49,7 +47,7 @@ func GetFiles(dir *string) ([]string, error) {
 		uniqueFiles[f] = struct{}{}
 	}
 
-	// 3. Archivos Modificados (Working directory)
+	// 3. Modified Files (Working directory)
 	modifiedFiles, err := runGitLsFiles(finalPath, "--modified")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get modified files: %w", err)
@@ -58,7 +56,7 @@ func GetFiles(dir *string) ([]string, error) {
 		uniqueFiles[f] = struct{}{}
 	}
 
-	// 4. Archivos Untracked (Ignorando .gitignore)
+	// 4. Untracked Files (Ignoring .gitignore)
 	untrackedFiles, err := runGitLsFiles(finalPath, "--others", "--exclude-standard")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get untracked files: %w", err)
@@ -67,7 +65,7 @@ func GetFiles(dir *string) ([]string, error) {
 		uniqueFiles[f] = struct{}{}
 	}
 
-	// Convertir el mapa de vuelta a un slice con rutas absolutas
+	/// Convert the map back to a slice with absolute paths
 	var finalFiles []string
 	for file := range uniqueFiles {
 		filepathComplete := filepath.Join(finalPath, file)
@@ -77,7 +75,7 @@ func GetFiles(dir *string) ([]string, error) {
 	return finalFiles, nil
 }
 
-// Acepta múltiples flags para hacer la función más flexible
+// Accepts multiple flags to make the function more flexible
 func runGitLsFiles(dir string, flags ...string) ([]string, error) {
 	args := append([]string{"ls-files"}, flags...)
 	cmd := exec.Command("git", args...)

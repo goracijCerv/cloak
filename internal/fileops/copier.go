@@ -1,6 +1,7 @@
 package fileops
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,12 +17,22 @@ import (
 
 const DefaultMaxFolderLength = 50
 
+type Manifest struct {
+	Warning string          `json:"_WARNING_"`
+	Entries []ManifestEntry `json:"entries"`
+}
+
+type ManifestEntry struct {
+	BackupName   string `json:"backup_name"`
+	OriginalPath string `json:"original_path"`
+}
+
 var (
 	invalidChars    = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1F]`)
 	multiUnderscore = regexp.MustCompile(`_+`)
 )
 
-var windowsReserverd = map[string]struct{}{
+var windowsReserved = map[string]struct{}{
 	"CON": {}, "PRN": {}, "AUX": {}, "NUL": {},
 	"COM1": {}, "COM2": {}, "COM3": {}, "COM4": {}, "COM5": {}, "COM6": {}, "COM7": {}, "COM8": {}, "COM9": {},
 	"LPT1": {}, "LPT2": {}, "LPT3": {}, "LPT4": {}, "LPT5": {}, "LPT6": {}, "LPT7": {}, "LPT8": {}, "LPT9": {},
@@ -43,7 +54,7 @@ func sanitizeFolderName(name string, maxLen int) string {
 	}
 
 	upper := strings.ToUpper(clean)
-	if _, reserved := windowsReserverd[upper]; reserved {
+	if _, reserved := windowsReserved[upper]; reserved {
 		clean = "_" + clean
 	}
 
@@ -55,65 +66,66 @@ func sanitizeFolderName(name string, maxLen int) string {
 	return clean
 }
 
-func copiarArchivo(rutaOrigen string, dirDestiono string, raizProyecto string) error {
-	//obtenemos el path relativo
-	rutaRelativa, err := filepath.Rel(raizProyecto, rutaOrigen)
+func copyFile(originPath string, destDir string, rootProject string) (string, string, error) {
+	//getting the relative path
+	relativePath, err := filepath.Rel(rootProject, originPath)
 	if err != nil {
-		return fmt.Errorf("failed to compute relative path for %q: %w", rutaOrigen, err)
+		return "", "", fmt.Errorf("failed to compute relative path for %q: %w", originPath, err)
 	}
-	//se convierte en _ los / del path por ejemplo cdm/cloack/main a cdm_cloack_main
-	nuevoNombre := strings.ReplaceAll(rutaRelativa, string(filepath.Separator), "_")
-	rutaDestino := filepath.Join(dirDestiono, nuevoNombre)
-	//esto valida que no haya repetidos y si hay creaa otro nombre pero con un numero
-	if _, err := os.Stat(rutaDestino); err == nil {
-		ext := filepath.Ext(nuevoNombre)
-		nombreSinExt := strings.TrimSuffix(nuevoNombre, ext)
-		contador := 1
+	//converting the / into _ of the path for example cmd/cloak/main to cmd_cloak_main
+
+	newName := strings.ReplaceAll(relativePath, string(filepath.Separator), "_")
+	destPath := filepath.Join(destDir, newName)
+	//this validate that there arent repeated files and in case that there are we create another one but with a number
+	if _, err := os.Stat(destPath); err == nil {
+		ext := filepath.Ext(newName)
+		nameNoExt := strings.TrimSuffix(newName, ext)
+		counter := 1
 
 		for {
-			rutaDestino = filepath.Join(dirDestiono, fmt.Sprintf("%s_%d%s", nombreSinExt, contador, ext))
-			if _, err := os.Stat(rutaDestino); os.IsNotExist(err) {
+			destPath = filepath.Join(destDir, fmt.Sprintf("%s_%d%s", nameNoExt, counter, ext))
+			if _, err := os.Stat(destPath); os.IsNotExist(err) {
 				break
 			}
-			contador++
+			counter++
 		}
 	}
 
-	//Empezamos a hacer la compia
-	origen, err := os.Open(rutaOrigen)
+	//Starting to make the copy
+	origin, err := os.Open(originPath)
 	if err != nil {
-		return fmt.Errorf("failed to open source file %q: %w", rutaOrigen, err)
+		return "", "", fmt.Errorf("failed to open source file %q: %w", originPath, err)
 	}
 
-	defer origen.Close()
+	defer origin.Close()
 
-	destino, err := os.Create(rutaDestino)
+	dest, err := os.Create(destPath)
 	if err != nil {
-		return fmt.Errorf("failed to create destination file %q: %w", rutaDestino, err)
+		return "", "", fmt.Errorf("failed to create destination file %q: %w", destPath, err)
 	}
 
-	defer destino.Close()
+	defer dest.Close()
 
-	if _, err = io.Copy(destino, origen); err != nil {
-		return fmt.Errorf("failed to copy %q to %q: %w", rutaOrigen, rutaDestino, err)
+	if _, err = io.Copy(dest, origin); err != nil {
+		return "", "", fmt.Errorf("failed to copy %q to %q: %w", originPath, destPath, err)
 	}
 
-	return nil
+	return filepath.Clean(relativePath), filepath.Base(destPath), nil
 
 }
 
-// Obtenemos el directorio final del backup
-func BuildOutPutDir(outPutDir string, dirOrigen *string, message string) (string, error) {
+// we get the final directory of the backup
+func BuildOutPutDir(outPutDir string, originDir *string, message string) (string, error) {
 	if outPutDir != "" {
 		return filepath.Clean(outPutDir), nil
 	}
 
-	parentDir := filepath.Dir(*dirOrigen)
+	parentDir := filepath.Dir(*originDir)
 	if parentDir == "." {
 		return "", fmt.Errorf("source directory has no parent directory")
 	}
 
-	folderName := filepath.Base(*dirOrigen)
+	folderName := filepath.Base(*originDir)
 
 	currentTime := time.Now()
 	timestamp := fmt.Sprintf("%d-%02d-%02d_%02d-%02d-%02d",
@@ -131,33 +143,56 @@ func BuildOutPutDir(outPutDir string, dirOrigen *string, message string) (string
 	return filepath.Clean(filepath.Join(parentDir, "backup", backupFolderName)), nil
 }
 
-func CreateNewBackUp(files []string, outPutDir string, messagge string, dirOrigen *string) error {
+func CreateNewBackUp(files []string, outPutDir string, message string, originDir *string) error {
 	if len(files) == 0 {
 		return fmt.Errorf("no files provided to back up")
 	}
 
-	finalOutPutDir, err := BuildOutPutDir(outPutDir, dirOrigen, messagge)
+	finalOutPutDir, err := BuildOutPutDir(outPutDir, originDir, message)
 	if err != nil {
 		return fmt.Errorf("failed to resolve output directory: %w", err)
 	}
 
 	fmt.Println("Backup destination:", finalOutPutDir)
 
-	//Crear el direcotrio
+	//Creating directory
 	if _, err := os.Stat(finalOutPutDir); errors.Is(err, os.ErrNotExist) {
 		if err := os.MkdirAll(finalOutPutDir, os.ModePerm); err != nil {
 			return fmt.Errorf("failed to create backup directory %q: %w", finalOutPutDir, err)
 		}
 	}
 
-	//copiar archivos
+	//copy the files
 	var copyErrors []string
+	manifestFile := Manifest{
+		Warning: "DO NOT DELETE OR MODIFY THIS FILE and ALSO DO NOT CHANGE ITS PATH. It is strictly necessary for 'cloak restore' to work.",
+	}
 	for i := range files {
-		if err := copiarArchivo(files[i], finalOutPutDir, *dirOrigen); err != nil {
+		relativePathOri, backupFileName, err := copyFile(files[i], finalOutPutDir, *originDir)
+		if err != nil {
 			copyErrors = append(copyErrors, err.Error())
 
+		} else {
+			entry := ManifestEntry{
+				BackupName:   backupFileName,
+				OriginalPath: relativePathOri,
+			}
+			manifestFile.Entries = append(manifestFile.Entries, entry)
 		}
+
 	}
+	//Creating the manifest file
+	jsonData, err := json.MarshalIndent(manifestFile, "", "  ")
+	if err != nil {
+		return fmt.Errorf("error generating the manifest data: %w", err)
+	}
+
+	manifestPath := filepath.Join(finalOutPutDir, "manifest.json")
+	err = os.WriteFile(manifestPath, jsonData, 0644)
+	if err != nil {
+		return fmt.Errorf("error generating the manifest file %w", err)
+	}
+
 	if len(copyErrors) > 0 {
 		return fmt.Errorf("backup completed with %d error(s): \n%s", len(copyErrors), strings.Join(copyErrors, "\n"))
 	}
@@ -165,57 +200,29 @@ func CreateNewBackUp(files []string, outPutDir string, messagge string, dirOrige
 	return nil
 }
 
-// Obtiene las rutas destio al repositorio original, basado en los archivos del backupdir
-func getDestinyRoutes(backupDir string, originalDir string) ([]string, error) {
-	if backupDir == "" {
-		return nil, fmt.Errorf("no backup folder")
-	}
-
-	info, err := os.Stat(backupDir)
+// read the manifest.json file
+func readManifest(backupDir string) (*Manifest, error) {
+	manifestPath := filepath.Join(backupDir, "manifest.json")
+	file, err := os.Open(manifestPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("route does not exist")
+			return nil, fmt.Errorf("manifest.json was not found in the backup directory")
 		}
-		return nil, fmt.Errorf("something weird happen %w", err)
+		return nil, fmt.Errorf("error trying to open the manifest.json file: %w", err)
 	}
+	defer file.Close()
 
-	if !info.IsDir() {
-		return nil, fmt.Errorf("route is not an folder")
-	}
-	files, err := os.ReadDir(backupDir)
+	bytes, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("Something went wrong: %w", err)
-	}
-	var finalRoutes []string
-	for in := range files {
-		baseRute := strings.ReplaceAll(files[in].Name(), "_", string(filepath.Separator))
-		rutaDestino := filepath.Clean(filepath.Join(originalDir, baseRute))
-		finalRoutes = append(finalRoutes, rutaDestino)
+		return nil, fmt.Errorf("error trying to read the manifest.json file: %w", err)
 	}
 
-	// for i := range finalRoutes {
-	// 	fmt.Println(finalRoutes[i])
-	// }
-	return finalRoutes, nil
-}
-
-func getFilesRoutesFromBackUp(backupDir string) ([]string, error) {
-	if backupDir == "" {
-		return nil, fmt.Errorf("empty path")
+	var manifest Manifest
+	if err := json.Unmarshal(bytes, &manifest); err != nil {
+		return nil, fmt.Errorf("the manifest.json file is dameged or it was modified: %w", err)
 	}
 
-	files, err := os.ReadDir(backupDir)
-	if err != nil {
-		return nil, fmt.Errorf("Something went wrong: %w", err)
-	}
-
-	var paths []string
-	for _, i := range files {
-		fullpath := filepath.Clean(filepath.Join(backupDir, i.Name()))
-		paths = append(paths, fullpath)
-	}
-
-	return paths, nil
+	return &manifest, nil
 }
 
 func restoreFile(fileToRestore string, destinyPath string) error {
@@ -223,173 +230,62 @@ func restoreFile(fileToRestore string, destinyPath string) error {
 		return fmt.Errorf("empty path")
 	}
 
-	//Verificamos que exista el directorio
+	//we check that the directory exist
 	dir := filepath.Dir(destinyPath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create directories %q: %w", dir, err)
 	}
 
-	//Empezamos a hacer la compia
-	origen, err := os.Open(fileToRestore)
+	//making the copy
+	origin, err := os.Open(fileToRestore)
 	if err != nil {
 		return fmt.Errorf("failed to open source file %q: %w", fileToRestore, err)
 	}
 
-	defer origen.Close()
+	defer origin.Close()
 
-	destino, err := os.Create(destinyPath)
+	dest, err := os.Create(destinyPath)
 	if err != nil {
 		return fmt.Errorf("failed to create destination file %q: %w", destinyPath, err)
 	}
 
-	defer destino.Close()
+	defer dest.Close()
 
-	if _, err = io.Copy(destino, origen); err != nil {
+	if _, err = io.Copy(dest, origin); err != nil {
 		return fmt.Errorf("failed to restore %q to %q: %w", fileToRestore, destinyPath, err)
 	}
 
 	return nil
 }
 
-func RestorBackUp(backupDir string, originalDir string) error {
+func RestoreBackUp(backupDir string, originalDir string) error {
 	if backupDir == "" || originalDir == "" {
 		return fmt.Errorf("empty path")
 	}
 
-	//opteniendo las rutas de los archvios a copiar del backup
-	backUpRoutes, err := getFilesRoutesFromBackUp(backupDir)
+	manifest, err := readManifest(backupDir)
 	if err != nil {
 		return err
 	}
-
-	if len(backUpRoutes) == 0 {
-		return fmt.Errorf("no backup files to restore")
+	if len(manifest.Entries) == 0 {
+		return fmt.Errorf("The manifest.json file is empty, no files to restore")
 	}
-
-	//obteniendo las rutas destino de la carpeta orignal
-	destinyRoutes, err := getDestinyRoutes(backupDir, originalDir)
-
-	if err != nil {
-		return err
-	}
-
-	if len(destinyRoutes) == 0 {
-		return fmt.Errorf("something went wrong getting the destiny routes")
-	}
-
-	//copiar archivos
+	//copying the files
 	var copyErrors []string
-	for i := range backUpRoutes {
-		if err := restoreFile(backUpRoutes[i], destinyRoutes[i]); err != nil {
-			copyErrors = append(copyErrors, err.Error())
+	for _, entry := range manifest.Entries {
+		//makeing the absolute path for the file to restore
+		fileToRestore := filepath.Join(backupDir, entry.BackupName)
+		//construimos la ruta  absoluta de la ruta que debe regresar en el proyecto original
+		destinyPath := filepath.Join(originalDir, entry.OriginalPath)
 
+		if err := restoreFile(fileToRestore, destinyPath); err != nil {
+			copyErrors = append(copyErrors, fmt.Sprintf("fail in %s: %s", entry.OriginalPath, err.Error()))
 		}
 	}
+
 	if len(copyErrors) > 0 {
 		return fmt.Errorf("restore completed with %d error(s): \n%s", len(copyErrors), strings.Join(copyErrors, "\n"))
 	}
 
 	return nil
 }
-
-//Estructura de la direccion que debe hacer
-/*
- lugarDondeEstaRepo/backup/MensajeOpcional*[NombreRepo]Fecha
-
- lugarDondeEstaRepo/backup/[NombreRepo]MensajeOpciona-Fecha
-
-
-
-  func copiarInteligente(rutaOrigen string, dirDestino string, dirOrigen *string) error {
-	// 1. Determine the path we will use strictly for naming purposes
-	rutaParaNombres := rutaOrigen
-	if *dirOrigen != "" {
-		// Strip the C:\Users\IT\go\src\cloak part away
-		if rel, err := filepath.Rel(*dirOrigen, rutaOrigen); err == nil {
-			rutaParaNombres = rel
-		}
-	}
-
-	nombreArchivo := filepath.Base(rutaParaNombres)
-	rutaDestino := filepath.Join(dirDestino, nombreArchivo)
-
-	// 2. Verify if the file exists and resolve collisions
-	if _, err := os.Stat(rutaDestino); err == nil {
-		ext := filepath.Ext(nombreArchivo)
-		nombreSinExt := strings.TrimSuffix(nombreArchivo, ext)
-
-		// Start looking at the parent folders of our relative path
-		currentDir := filepath.Dir(rutaParaNombres)
-		var prefix string
-		nombreEncontrado := false
-
-		// Walk up the directory tree
-		for {
-			// Stop if we reach the relative root (".") or filesystem root
-			if currentDir == "." || currentDir == string(filepath.Separator) || currentDir == "" {
-				break
-			}
-
-			baseDir := filepath.Base(currentDir)
-
-			// Build the prefix dynamically (e.g., "utils", then "cmd_utils")
-			if prefix == "" {
-				prefix = baseDir
-			} else {
-				prefix = baseDir + "_" + prefix
-			}
-
-			nuevoNombre := fmt.Sprintf("%s_%s%s", prefix, nombreSinExt, ext)
-			rutaDestino = filepath.Join(dirDestino, nuevoNombre)
-
-			// If it doesn't exist, we found our unique name!
-			if _, err := os.Stat(rutaDestino); os.IsNotExist(err) {
-				nombreEncontrado = true
-				break
-			}
-
-			// Move up one directory level for the next iteration
-			nextDir := filepath.Dir(currentDir)
-			if nextDir == currentDir {
-				break // Failsafe
-			}
-			currentDir = nextDir
-		}
-
-		// FALLBACK: If we ran out of folders in our project root and STILL have a collision
-		if !nombreEncontrado {
-			contador := 1
-			for {
-				// If prefix is empty (it was at the root of the project), handle formatting safely
-				if prefix == "" {
-					rutaDestino = filepath.Join(dirDestino, fmt.Sprintf("%s_%d%s", nombreSinExt, contador, ext))
-				} else {
-					rutaDestino = filepath.Join(dirDestino, fmt.Sprintf("%s_%s_%d%s", prefix, nombreSinExt, contador, ext))
-				}
-
-				if _, err := os.Stat(rutaDestino); os.IsNotExist(err) {
-					break
-				}
-				contador++
-			}
-		}
-	}
-
-	// 3. Perform the copy using the ORIGINAL absolute path
-	origen, err := os.Open(rutaOrigen)
-	if err != nil {
-		return err
-	}
-	defer origen.Close()
-
-	destino, err := os.Create(rutaDestino)
-	if err != nil {
-		return err
-	}
-	defer destino.Close()
-
-	_, err = io.Copy(destino, origen)
-	return err
-}
-
-*/

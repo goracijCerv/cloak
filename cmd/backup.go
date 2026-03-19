@@ -22,7 +22,7 @@ var backupCmd = &cobra.Command{
 	Use:   "backup",
 	Short: "Back up untracked and modified files",
 	Run: func(cmd *cobra.Command, args []string) {
-		// //Configuradno el log
+		// //set log file
 		// logFile,err := os.OpenFile("cloak_logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		// if err != nil {
 		// 	fmt.Println("ERROR: Failed to open log file",err)
@@ -42,11 +42,11 @@ var backupCmd = &cobra.Command{
 }
 
 func init() {
-	//Adjuntamos el comando backup a la raiz osea al comando 'cloak'
+	//We attach the command backup to the root command ('the command cloak')
 	rootCmd.AddCommand(backupCmd)
 
 	actualDirectory, _ := os.Getwd()
-	//Definimos las flags de cloak backup
+	//We defiend the flags for the backup subcommand
 
 	backupCmd.Flags().StringVarP(&gitDirectory, "dir", "d", actualDirectory, "Git repository directory to back up untracked changes from.")
 	backupCmd.Flags().StringVarP(&outPutDirectory, "output", "o", "", "Directory where the backup will be created (defaults to parent of -d backup folder).")
@@ -55,6 +55,7 @@ func init() {
 }
 
 func executeDryRun() {
+	fmt.Printf("Searching in: %s\n", gitDirectory)
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
 		//log.Println("ERROR: Failed to get files from git:", err)
@@ -82,6 +83,7 @@ func executeDryRun() {
 }
 
 func executeBackup() {
+	fmt.Printf("Searching in: %s\n", gitDirectory)
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
 		//log.Println("ERROR: Failed to get files from git:", err)
@@ -111,6 +113,9 @@ func executeBackup() {
 
 		case strings.Contains(errorString, "backup completed with"):
 			fmt.Println("The backup finished with errors. You can find the list of failed files in the cloak logs")
+
+		case strings.Contains(errorString, "error generating the manifest"):
+			fmt.Println("Error in the process of generating the manifest file")
 
 		}
 		return

@@ -29,9 +29,8 @@ var restoreCmd = &cobra.Command{
 				fmt.Println("Restoration canceled by the user.")
 				return
 			}
-
-			executeRestore()
 		}
+		executeRestore()
 	},
 }
 
@@ -42,10 +41,11 @@ func init() {
 	restoreCmd.Flags().StringVarP(&gitDirectory2, "dir", "d", actualDirectory, "Git repository directory to back up untracked changes from.")
 	restoreCmd.Flags().StringVarP(&backupDirectory, "back", "b", "", "Backup directory to get the files that will be restore.")
 	restoreCmd.Flags().BoolVarP(&skipConfirm, "yes", "y", false, "Avoid asking the user for confirmation if they are sure they want to perform the restore.")
+	restoreCmd.MarkFlagRequired("back")
 }
 
 func executeRestore() {
-	if err := fileops.RestorBackUp(backupDirectory, gitDirectory2); err != nil {
+	if err := fileops.RestoreBackUp(backupDirectory, gitDirectory2); err != nil {
 		errorString := err.Error()
 		switch {
 		case strings.Contains(errorString, "empty path"):
