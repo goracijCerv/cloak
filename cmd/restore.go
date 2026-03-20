@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -46,15 +47,14 @@ func init() {
 
 func executeRestore() {
 	if err := fileops.RestoreBackUp(backupDirectory, gitDirectory2); err != nil {
-		errorString := err.Error()
 		switch {
-		case strings.Contains(errorString, "empty path"):
+		case errors.Is(err, fileops.ErrNoPaths):
 			fmt.Println("The directorys paths are empty.")
-		case strings.Contains(errorString, "no backup files to restore"):
+		case errors.Is(err, fileops.ErrEmptyManifest):
 			fmt.Println("The backup folder doesnt have any files to restore.")
-		case strings.Contains(errorString, "something went wrong getting the destiny routes"):
-			fmt.Println("Something went wrong examinig the folders.")
-		case strings.Contains(errorString, "restore completed with"):
+		case errors.Is(err, fileops.ErrGetManifest):
+			fmt.Println("The manifest file doesnt exit.")
+		case errors.Is(err, fileops.ErrRestoreWithErrors):
 			fmt.Println("The restore completed with errors. You can find the list in the cloak logs files.")
 		default:
 			fmt.Println("Someting went wrong please check the cloak logs file.")

@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/goracijCerv/cloak/internal/fileops"
 	"github.com/goracijCerv/cloak/internal/git"
@@ -99,24 +99,26 @@ func executeBackup() {
 
 	if err := fileops.CreateNewBackUp(filesToCopy, outPutDirectory, messageComment, &gitDirectory); err != nil {
 		//log.Println("ERROR: Backup failed:", err)
-		errorString := err.Error()
 		switch {
-		case strings.Contains(errorString, "no files provided to back up"):
+		case errors.Is(err, fileops.ErrNoFiles):
 			fmt.Println("No files to back up")
 
-		case strings.Contains(errorString, "failed to resolve output directory"):
+		case errors.Is(err, fileops.ErrResolveOutputDir):
 			fmt.Println("Unable to solve output directory")
 			fmt.Println("Please check the cloak logs file to see more details of the error")
 
-		case strings.Contains(errorString, "failed to create backup directory"):
+		case errors.Is(err, fileops.ErrFaildedBackDir):
 			fmt.Println("Failed to create backup directory")
 
-		case strings.Contains(errorString, "backup completed with"):
+		case errors.Is(err, fileops.ErrBackupWithErrors):
 			fmt.Println("The backup finished with errors. You can find the list of failed files in the cloak logs")
 
-		case strings.Contains(errorString, "error generating the manifest"):
+		case errors.Is(err, fileops.ErrFailedManFile):
 			fmt.Println("Error in the process of generating the manifest file")
-
+		case errors.Is(err, fileops.ErrFailedManData):
+			fmt.Println("Error in the process of generating the manifest file")
+		default:
+			fmt.Println("Someting went wrong please check the cloak logs file.")
 		}
 		return
 	}

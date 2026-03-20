@@ -32,6 +32,19 @@ var (
 	multiUnderscore = regexp.MustCompile(`_+`)
 )
 
+var (
+	ErrNoFiles           = errors.New("no files provided to back up")
+	ErrResolveOutputDir  = errors.New("failed to resolve output directory")
+	ErrBackupWithErrors  = errors.New("backup completed with")
+	ErrFaildedBackDir    = errors.New("failed to create backup directory")
+	ErrFailedManData     = errors.New("failed to generated manifest data")
+	ErrFailedManFile     = errors.New("failed to generated manifest file")
+	ErrNoPaths           = errors.New("no paths for backupdir or originaldir")
+	ErrGetManifest       = errors.New("failed to get manifest file")
+	ErrEmptyManifest     = errors.New("manifest file is empty")
+	ErrRestoreWithErrors = errors.New("restore completed with")
+)
+
 var windowsReserved = map[string]struct{}{
 	"CON": {}, "PRN": {}, "AUX": {}, "NUL": {},
 	"COM1": {}, "COM2": {}, "COM3": {}, "COM4": {}, "COM5": {}, "COM6": {}, "COM7": {}, "COM8": {}, "COM9": {},
@@ -145,12 +158,12 @@ func BuildOutPutDir(outPutDir string, originDir *string, message string) (string
 
 func CreateNewBackUp(files []string, outPutDir string, message string, originDir *string) error {
 	if len(files) == 0 {
-		return fmt.Errorf("no files provided to back up")
+		return ErrNoFiles
 	}
 
 	finalOutPutDir, err := BuildOutPutDir(outPutDir, originDir, message)
 	if err != nil {
-		return fmt.Errorf("failed to resolve output directory: %w", err)
+		return fmt.Errorf("%w: %w", ErrResolveOutputDir, err)
 	}
 
 	fmt.Println("Backup destination:", finalOutPutDir)
@@ -158,7 +171,7 @@ func CreateNewBackUp(files []string, outPutDir string, message string, originDir
 	//Creating directory
 	if _, err := os.Stat(finalOutPutDir); errors.Is(err, os.ErrNotExist) {
 		if err := os.MkdirAll(finalOutPutDir, os.ModePerm); err != nil {
-			return fmt.Errorf("failed to create backup directory %q: %w", finalOutPutDir, err)
+			return fmt.Errorf("%w %q: %w", ErrFaildedBackDir, finalOutPutDir, err)
 		}
 	}
 
@@ -184,17 +197,17 @@ func CreateNewBackUp(files []string, outPutDir string, message string, originDir
 	//Creating the manifest file
 	jsonData, err := json.MarshalIndent(manifestFile, "", "  ")
 	if err != nil {
-		return fmt.Errorf("error generating the manifest data: %w", err)
+		return fmt.Errorf("%w: %w", ErrFailedManData, err)
 	}
 
 	manifestPath := filepath.Join(finalOutPutDir, "manifest.json")
 	err = os.WriteFile(manifestPath, jsonData, 0644)
 	if err != nil {
-		return fmt.Errorf("error generating the manifest file %w", err)
+		return fmt.Errorf("%w :%w", ErrFailedManFile, err)
 	}
 
 	if len(copyErrors) > 0 {
-		return fmt.Errorf("backup completed with %d error(s): \n%s", len(copyErrors), strings.Join(copyErrors, "\n"))
+		return fmt.Errorf("%w %d error(s): \n%s", ErrBackupWithErrors, len(copyErrors), strings.Join(copyErrors, "\n"))
 	}
 
 	return nil
@@ -260,15 +273,15 @@ func restoreFile(fileToRestore string, destinyPath string) error {
 
 func RestoreBackUp(backupDir string, originalDir string) error {
 	if backupDir == "" || originalDir == "" {
-		return fmt.Errorf("empty path")
+		return ErrNoPaths
 	}
 
 	manifest, err := readManifest(backupDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrGetManifest, err)
 	}
 	if len(manifest.Entries) == 0 {
-		return fmt.Errorf("The manifest.json file is empty, no files to restore")
+		return ErrEmptyManifest
 	}
 	//copying the files
 	var copyErrors []string
@@ -284,7 +297,7 @@ func RestoreBackUp(backupDir string, originalDir string) error {
 	}
 
 	if len(copyErrors) > 0 {
-		return fmt.Errorf("restore completed with %d error(s): \n%s", len(copyErrors), strings.Join(copyErrors, "\n"))
+		return fmt.Errorf("%w %d error(s): \n%s", ErrRestoreWithErrors, len(copyErrors), strings.Join(copyErrors, "\n"))
 	}
 
 	return nil
