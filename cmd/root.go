@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
+	"github.com/goracijCerv/cloak/internal/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -13,6 +15,11 @@ var rootCmd = &cobra.Command{
 	Short: "A backup tool for untracked and modified git files",
 	Long:  "Cloak safely backs up untracked or modified files in your git respository.",
 	//Si no se pasa un subcomando muestra el menu de ayuda
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if err := logger.Init(); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not initialize log file: %v\n", err)
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
