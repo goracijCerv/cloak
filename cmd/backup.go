@@ -8,6 +8,7 @@ import (
 
 	"github.com/goracijCerv/cloak/internal/fileops"
 	"github.com/goracijCerv/cloak/internal/git"
+	"github.com/goracijCerv/cloak/internal/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -22,14 +23,7 @@ var backupCmd = &cobra.Command{
 	Use:   "backup",
 	Short: "Back up untracked and modified files",
 	Run: func(cmd *cobra.Command, args []string) {
-		// //set log file
-		// logFile,err := os.OpenFile("cloak_logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		// if err != nil {
-		// 	fmt.Println("ERROR: Failed to open log file",err)
-		// }
-		// defer logFile.Close()
-		// log.SetOutput(logFile)
-		// log.Println("--- Application started (Backup Command) ---")
+		logger.Info("COMMAND: backup")
 
 		if dryRun {
 			executeDryRun()
@@ -55,23 +49,23 @@ func init() {
 }
 
 func executeDryRun() {
+	logger.Info("PROCESS: dry-run")
 	fmt.Printf("Searching in: %s\n", gitDirectory)
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
-		//log.Println("ERROR: Failed to get files from git:", err)
+		logger.Error(fmt.Sprintf("failed to get files from git: %v", err))
 		fmt.Println("Something went wrong when getting the files, please check the cloak logs file")
 		return
 	}
 
 	finalOutPutDir, err := fileops.BuildOutPutDir(outPutDirectory, &gitDirectory, messageComment)
 	if err != nil {
-		//log.Println("ERROR: Unable to solve output directory:", err)
+		logger.Error(fmt.Sprintf("failed to solve output directory: %v", err))
 		fmt.Println("Unable to solve output directory. Check the cloak logs file.")
 		return
 	}
 	fmt.Printf("The output directory will be %s \n", filepath.Clean(finalOutPutDir))
 	if len(filesToCopy) == 0 {
-		//log.Println("No files to copy")
 		fmt.Println("Nothing to back up: no untracked or modified files found.")
 		return
 	}
@@ -83,22 +77,22 @@ func executeDryRun() {
 }
 
 func executeBackup() {
+	logger.Info("PROCESS: backing up files")
 	fmt.Printf("Searching in: %s\n", gitDirectory)
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
-		//log.Println("ERROR: Failed to get files from git:", err)
+		logger.Error(fmt.Sprintf("failed to get files from git: %v", err))
 		fmt.Println("Something went wrong when getting the files, please check the cloak logs file")
 		return
 	}
 
 	if len(filesToCopy) == 0 {
-		//log.Println("No files to copy")
 		fmt.Println("Nothing to back up: no untracked or modified files found.")
 		return
 	}
 
 	if err := fileops.CreateNewBackUp(filesToCopy, outPutDirectory, messageComment, &gitDirectory); err != nil {
-		//log.Println("ERROR: Backup failed:", err)
+		logger.Error(fmt.Sprintf("failed to make the backup: %v", err))
 		switch {
 		case errors.Is(err, fileops.ErrNoFiles):
 			fmt.Println("No files to back up")

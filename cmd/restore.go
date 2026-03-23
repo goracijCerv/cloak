@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/goracijCerv/cloak/internal/fileops"
+	"github.com/goracijCerv/cloak/internal/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -46,7 +47,9 @@ func init() {
 }
 
 func executeRestore() {
+	logger.Info("COMMAND: restore\nPROCESS:restoring files")
 	if err := fileops.RestoreBackUp(backupDirectory, gitDirectory2); err != nil {
+		logger.Error(fmt.Sprintf("failded to make the restore: %v", err))
 		switch {
 		case errors.Is(err, fileops.ErrNoPaths):
 			fmt.Println("The directorys paths are empty.")
