@@ -20,7 +20,7 @@ var (
 
 var restoreCmd = &cobra.Command{
 	Use:   "restore",
-	Short: "Restore a backup of a git repository into the origina folder",
+	Short: "Restore a backup of a git repository into the original folder",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !skipConfirm {
 			fmt.Println("⚠️ WARNING: You are going to overwrite files in the specific directory. Are you sure? [y/n]:")

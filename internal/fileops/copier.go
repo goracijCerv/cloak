@@ -42,6 +42,7 @@ var (
 	ErrGetManifest       = errors.New("failed to get manifest file")
 	ErrEmptyManifest     = errors.New("manifest file is empty")
 	ErrRestoreWithErrors = errors.New("restore completed with")
+	ErrNoPaths           = errors.New("paths are empty")
 )
 
 var windowsReserved = map[string]struct{}{
@@ -178,6 +179,7 @@ func CreateNewBackUp(files []string, outPutDir string, message string, originDir
 	var copyErrors []string
 	manifestFile := Manifest{
 		Warning: "DO NOT DELETE OR MODIFY THIS FILE and ALSO DO NOT CHANGE ITS PATH. It is strictly necessary for 'cloak restore' to work.",
+		Entries: make([]ManifestEntry, 0),
 	}
 	for i := range files {
 		relativePathOri, backupFileName, err := copyFile(files[i], finalOutPutDir, *originDir)
@@ -271,6 +273,10 @@ func restoreFile(fileToRestore string, destinyPath string) error {
 }
 
 func RestoreBackUp(backupDir string, originalDir string) error {
+
+	if backupDir == "" || originalDir == "" {
+		return ErrNoPaths // keep this as a safety net
+	}
 
 	manifest, err := readManifest(backupDir)
 	if err != nil {

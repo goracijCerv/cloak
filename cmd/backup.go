@@ -83,9 +83,16 @@ func executeDryRun() {
 
 func executeBackup() {
 	logger.Info("PROCESS: backing up files")
-	if err := isWriteble(gitDirectory); err != nil {
-		logger.Error(fmt.Sprintf("failed to check if the direcotry have writing permission: %v", err))
-		fmt.Println("Is posible that a  writing permission error happened for more info check the log file.")
+	finalOutPutDir, err := fileops.BuildOutPutDir(outPutDirectory, &gitDirectory, messageComment)
+	if err != nil {
+		logger.Error(fmt.Sprintf("failed to solve output directory: %v", err))
+		fmt.Println("Unable to solve output directory. Check the cloak logs file.")
+		return
+	}
+
+	if err := isWritable(filepath.Dir(finalOutPutDir)); err != nil {
+		logger.Error(fmt.Sprintf("output directory is not writable: %v", err))
+		fmt.Println("No write permission for the output directory. Check the cloak logs file.")
 		return
 	}
 
@@ -132,10 +139,10 @@ func executeBackup() {
 
 }
 
-func isWriteble(path string) error {
-	temFile := filepath.Join(path, ".cloak_write_test")
+func isWritable(path string) error {
+	tempFile := filepath.Join(path, ".cloak_write_test")
 
-	file, err := os.Create(temFile)
+	file, err := os.Create(tempFile)
 	if err != nil {
 		if errors.Is(err, os.ErrPermission) {
 			return fmt.Errorf("there are not writing permission in %s.", path)
@@ -144,7 +151,7 @@ func isWriteble(path string) error {
 	}
 
 	file.Close()
-	os.Remove(temFile)
+	os.Remove(tempFile)
 
 	return nil
 }
