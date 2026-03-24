@@ -39,7 +39,6 @@ var (
 	ErrFaildedBackDir    = errors.New("failed to create backup directory")
 	ErrFailedManData     = errors.New("failed to generated manifest data")
 	ErrFailedManFile     = errors.New("failed to generated manifest file")
-	ErrNoPaths           = errors.New("no paths for backupdir or originaldir")
 	ErrGetManifest       = errors.New("failed to get manifest file")
 	ErrEmptyManifest     = errors.New("manifest file is empty")
 	ErrRestoreWithErrors = errors.New("restore completed with")
@@ -272,9 +271,6 @@ func restoreFile(fileToRestore string, destinyPath string) error {
 }
 
 func RestoreBackUp(backupDir string, originalDir string) error {
-	if backupDir == "" || originalDir == "" {
-		return ErrNoPaths
-	}
 
 	manifest, err := readManifest(backupDir)
 	if err != nil {

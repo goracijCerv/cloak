@@ -25,6 +25,11 @@ var backupCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Info("COMMAND: backup")
 
+		if !filepath.IsAbs(gitDirectory) {
+			fmt.Println("The path of the directory to back up is not absolute.")
+			return
+		}
+
 		if dryRun {
 			executeDryRun()
 			return
@@ -78,6 +83,12 @@ func executeDryRun() {
 
 func executeBackup() {
 	logger.Info("PROCESS: backing up files")
+	if err := isWriteble(gitDirectory); err != nil {
+		logger.Error(fmt.Sprintf("failed to check if the direcotry have writing permission: %v", err))
+		fmt.Println("Is posible that a  writing permission error happened for more info check the log file.")
+		return
+	}
+
 	fmt.Printf("Searching in: %s\n", gitDirectory)
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
@@ -119,4 +130,21 @@ func executeBackup() {
 
 	fmt.Println("Backup completed successfully.")
 
+}
+
+func isWriteble(path string) error {
+	temFile := filepath.Join(path, ".cloak_write_test")
+
+	file, err := os.Create(temFile)
+	if err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			return fmt.Errorf("there are not writing permission in %s.", path)
+		}
+		return err
+	}
+
+	file.Close()
+	os.Remove(temFile)
+
+	return nil
 }

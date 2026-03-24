@@ -47,7 +47,7 @@ var listCmd = &cobra.Command{
 		fmt.Printf("%d backup(s) found for '%s';\n\n", len(backups), filepath.Base(repoDir))
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-		fmt.Fprintln(w, "BACKUO NAME\tFILES\tPATH")
+		fmt.Fprintln(w, "BACKUP NAME\tFILES\tPATH")
 		fmt.Fprintln(w, "-------------------\t--------\t----")
 
 		for _, b := range backups {

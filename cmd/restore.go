@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/goracijCerv/cloak/internal/fileops"
@@ -12,9 +13,9 @@ import (
 )
 
 var (
-	backupDirectory string
-	gitDirectory2   string
-	skipConfirm     bool
+	backupDirectory  string
+	restoreTargetDir string
+	skipConfirm      bool
 )
 
 var restoreCmd = &cobra.Command{
@@ -40,7 +41,7 @@ func init() {
 	rootCmd.AddCommand(restoreCmd)
 	actualDirectory, _ := os.Getwd()
 
-	restoreCmd.Flags().StringVarP(&gitDirectory2, "dir", "d", actualDirectory, "Git repository directory to back up untracked changes from.")
+	restoreCmd.Flags().StringVarP(&restoreTargetDir, "dir", "d", actualDirectory, "Git repository directory to back up untracked changes from.")
 	restoreCmd.Flags().StringVarP(&backupDirectory, "back", "b", "", "Backup directory to get the files that will be restore.")
 	restoreCmd.Flags().BoolVarP(&skipConfirm, "yes", "y", false, "Avoid asking the user for confirmation if they are sure they want to perform the restore.")
 	restoreCmd.MarkFlagRequired("back")
@@ -48,11 +49,30 @@ func init() {
 
 func executeRestore() {
 	logger.Info("COMMAND: restore\nPROCESS:restoring files")
-	if err := fileops.RestoreBackUp(backupDirectory, gitDirectory2); err != nil {
+	if restoreTargetDir == "" || backupDirectory == "" {
+		fmt.Println("No paths for the flags dir or back.")
+		return
+	}
+
+	if !filepath.IsAbs(backupDirectory) {
+		fmt.Println("The path to the backup directory is not absolute.")
+		return
+	}
+
+	_, err := os.Stat(backupDirectory)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("The given directory doesnt exist:", backupDirectory)
+			return
+		}
+		logger.Error(fmt.Sprintf("failed to check the backup directory %s: %v", backupDirectory, err))
+		fmt.Println("Something went wrong for more info check the log file.")
+		return
+	}
+
+	if err := fileops.RestoreBackUp(backupDirectory, restoreTargetDir); err != nil {
 		logger.Error(fmt.Sprintf("failded to make the restore: %v", err))
 		switch {
-		case errors.Is(err, fileops.ErrNoPaths):
-			fmt.Println("The directorys paths are empty.")
 		case errors.Is(err, fileops.ErrEmptyManifest):
 			fmt.Println("The backup folder doesnt have any files to restore.")
 		case errors.Is(err, fileops.ErrGetManifest):

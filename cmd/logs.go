@@ -26,6 +26,7 @@ var logsCmd = &cobra.Command{
 		logPath, err := logger.LogPath()
 		if err != nil {
 			fmt.Println("Could not resolve log file path:", err)
+			return
 		}
 
 		if showPath {
