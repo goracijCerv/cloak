@@ -63,7 +63,7 @@ func executeDryRun() {
 		return
 	}
 
-	finalOutPutDir, _, err := fileops.BuildOutPutDir(outPutDirectory, &gitDirectory, messageComment)
+	finalOutPutDir, _, err := fileops.BuildOutPutDir(outPutDirectory, &gitDirectory, messageComment) //the time.Time is not required in the dry run
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to solve output directory: %v", err))
 		fmt.Println("Unable to solve output directory. Check the cloak logs file.")
@@ -112,12 +112,6 @@ func executeBackup() {
 			}
 		}
 
-	} else {
-		if err := isWritable(filepath.Dir(filepath.Dir(finalOutPutDir))); err != nil {
-			logger.Error(fmt.Sprintf("default output directory is not writable: %v", err))
-			fmt.Println("No write permission for the default backup location. Check logs.")
-			return
-		}
 	}
 
 	fmt.Printf("Searching in: %s\n", gitDirectory)
