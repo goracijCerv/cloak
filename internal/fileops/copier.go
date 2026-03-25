@@ -18,8 +18,9 @@ import (
 const DefaultMaxFolderLength = 50
 
 type Manifest struct {
-	Warning string          `json:"_WARNING_"`
-	Entries []ManifestEntry `json:"entries"`
+	Warning   string          `json:"_WARNING_"`
+	CreatedAt time.Time       `json:"createdAt"`
+	Entries   []ManifestEntry `json:"entries"`
 }
 
 type ManifestEntry struct {
@@ -33,8 +34,8 @@ var (
 )
 
 var (
-	ErrNoFiles           = errors.New("no files provided to back up")
-	ErrResolveOutputDir  = errors.New("failed to resolve output directory")
+	ErrNoFiles = errors.New("no files provided to back up")
+	// ErrResolveOutputDir  = errors.New("failed to resolve output directory")
 	ErrBackupWithErrors  = errors.New("backup completed with")
 	ErrFaildedBackDir    = errors.New("failed to create backup directory")
 	ErrFailedManData     = errors.New("failed to generated manifest data")
@@ -128,19 +129,20 @@ func copyFile(originPath string, destDir string, rootProject string) (string, st
 }
 
 // we get the final directory of the backup
-func BuildOutPutDir(outPutDir string, originDir *string, message string) (string, error) {
+func BuildOutPutDir(outPutDir string, originDir *string, message string) (string, time.Time, error) {
+	currentTime := time.Now()
+
 	if outPutDir != "" {
-		return filepath.Clean(outPutDir), nil
+		return filepath.Clean(outPutDir), currentTime, nil
 	}
 
 	parentDir := filepath.Dir(*originDir)
 	if parentDir == "." {
-		return "", fmt.Errorf("source directory has no parent directory")
+		return "", currentTime, fmt.Errorf("source directory has no parent directory")
 	}
 
 	folderName := filepath.Base(*originDir)
 
-	currentTime := time.Now()
 	timestamp := fmt.Sprintf("%d-%02d-%02d_%02d-%02d-%02d",
 		currentTime.Year(), currentTime.Month(), currentTime.Day(),
 		currentTime.Hour(), currentTime.Minute(), currentTime.Second())
@@ -153,17 +155,12 @@ func BuildOutPutDir(outPutDir string, originDir *string, message string) (string
 	} else {
 		backupFolderName = fmt.Sprintf("[%s]%s", folderName, timestamp)
 	}
-	return filepath.Clean(filepath.Join(parentDir, "backup", backupFolderName)), nil
+	return filepath.Clean(filepath.Join(parentDir, "backup", backupFolderName)), currentTime, nil
 }
 
-func CreateNewBackUp(files []string, outPutDir string, message string, originDir *string) error {
+func CreateNewBackUp(files []string, finalOutPutDir string, message string, originDir *string, timeCreated time.Time) error {
 	if len(files) == 0 {
 		return ErrNoFiles
-	}
-
-	finalOutPutDir, err := BuildOutPutDir(outPutDir, originDir, message)
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrResolveOutputDir, err)
 	}
 
 	fmt.Println("Backup destination:", finalOutPutDir)
@@ -178,8 +175,9 @@ func CreateNewBackUp(files []string, outPutDir string, message string, originDir
 	//copy the files
 	var copyErrors []string
 	manifestFile := Manifest{
-		Warning: "DO NOT DELETE OR MODIFY THIS FILE and ALSO DO NOT CHANGE ITS PATH. It is strictly necessary for 'cloak restore' to work.",
-		Entries: make([]ManifestEntry, 0),
+		Warning:   "DO NOT DELETE OR MODIFY THIS FILE and ALSO DO NOT CHANGE ITS PATH. It is strictly necessary for 'cloak restore' to work.",
+		CreatedAt: timeCreated,
+		Entries:   make([]ManifestEntry, 0),
 	}
 	for i := range files {
 		relativePathOri, backupFileName, err := copyFile(files[i], finalOutPutDir, *originDir)
