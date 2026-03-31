@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Al the info of an backup
+// BackupInfo holds the summary information of a backup
 type BackupInfo struct {
 	Name      string
 	FileCount int
