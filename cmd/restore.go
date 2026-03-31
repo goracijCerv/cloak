@@ -50,7 +50,7 @@ func init() {
 func executeRestore() {
 	logger.Info("COMMAND: restore\nPROCESS:restoring files")
 	if restoreTargetDir == "" || backupDirectory == "" {
-		fmt.Println("No paths for the flags dir or back.")
+		fmt.Println("No path provided for --dir or --back.")
 		return
 	}
 
@@ -62,11 +62,11 @@ func executeRestore() {
 	_, err := os.Stat(backupDirectory)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Println("The given directory doesnt exist:", backupDirectory)
+			fmt.Println("The given directory does not exist:", backupDirectory)
 			return
 		}
 		logger.Error(fmt.Sprintf("failed to check the backup directory %s: %v", backupDirectory, err))
-		fmt.Println("Something went wrong for more info check the log file.")
+		fmt.Println("Something went wrong. For more info check the log file.")
 		return
 	}
 
@@ -74,16 +74,16 @@ func executeRestore() {
 		logger.Error(fmt.Sprintf("failded to make the restore: %v", err))
 		switch {
 		case errors.Is(err, fileops.ErrEmptyManifest):
-			fmt.Println("The backup folder doesnt have any files to restore.")
+			fmt.Println("The backup folder does not have any files to restore.")
 		case errors.Is(err, fileops.ErrGetManifest):
-			fmt.Println("The manifest file doesnt exit.")
+			fmt.Println("The manifest file does not exist.")
 		case errors.Is(err, fileops.ErrRestoreWithErrors):
-			fmt.Println("The restore completed with errors. You can find the list in the cloak logs files.")
+			fmt.Println("The restore completed with errors. You can find the list in the cloak log file.")
 		default:
-			fmt.Println("Someting went wrong please check the cloak logs file.")
+			fmt.Println("Something went wrong. Please check the cloak log file.")
 		}
 		return
 	}
 
-	fmt.Println("restoration completed successfully.")
+	fmt.Println("Restoration completed successfully.")
 }

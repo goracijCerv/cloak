@@ -20,7 +20,7 @@ var listCmd = &cobra.Command{
 		currentDir, err := os.Getwd()
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to get the working directory: %v", err))
-			fmt.Println("Failed to get the workig directory. for more info check log file.")
+			fmt.Println("Failed to get the working directory. For more info check the log file.")
 			return
 		}
 
@@ -36,10 +36,10 @@ var listCmd = &cobra.Command{
 				fmt.Println("The backup directory does not exist.")
 
 			case errors.Is(err, fileops.ErrFailedBackDir):
-				fmt.Println("Failed to read the backup directory. for more info check the log file.")
+				fmt.Println("Failed to read the backup directory. For more info check the log file.")
 
 			default:
-				fmt.Println("something went wrong, for more info check the log file")
+				fmt.Println("Something went wrong. For more info check the log file.")
 			}
 			return
 		}

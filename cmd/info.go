@@ -26,25 +26,25 @@ var infoCmd = &cobra.Command{
 		}
 
 		if !filepath.IsAbs(backUpPath) {
-			fmt.Println("The given path is not absolute path.")
+			fmt.Println("The given path is not an absolute path.")
 			return
 		}
 
 		_, err := os.Stat(backUpPath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				fmt.Println("The given directory doesnt exist:", backUpPath)
+				fmt.Println("The given directory does not exist:", backUpPath)
 				return
 			}
 			logger.Error(fmt.Sprintf("failed to check the backup directory %s: %v", backUpPath, err))
-			fmt.Println("Something went wrong for more info check the log file.")
+			fmt.Println("Something went wrong. For more info check the log file.")
 			return
 		}
 
 		infoData, err := fileops.GetBackupInfo(backUpPath)
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to get the backup info: %v", err))
-			fmt.Println("Failed to get the info of the back up for more info check the logs file.")
+			fmt.Println("Failed to get the backup info. For more info check the log file.")
 			return
 		}
 

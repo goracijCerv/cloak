@@ -34,7 +34,7 @@ Examples:
 		logger.Info("COMMAND: delete")
 
 		if len(deleteBackups) == 0 && !deleteAll && deleteBefore == "" && deleteAfter == "" {
-			fmt.Println("Error: You must specify what to delete (--back, --all, --before, or --after).")
+			fmt.Println("You must specify what to delete (--back, --all, --before, or --after).")
 			cmd.Help()
 			return
 		}
@@ -71,13 +71,13 @@ func executeDelete() {
 			logger.Error(fmt.Sprintf("failed to get all the back up of the working directory: %v", err))
 			switch {
 			case errors.Is(err, fileops.ErrNoBackUpDir):
-				fmt.Println("There isn't a backups folder.")
+				fmt.Println("There is no backups folder for this directory.")
 			case errors.Is(err, fileops.ErrGetManifest):
-				fmt.Println("An error occurred trying to read the manifest file of a backup. For more info check the log file.")
+				fmt.Println("An error occurred reading the manifest file of a backup. For more info check the log file.")
 			case errors.Is(err, fileops.ErrNoBackUps):
-				fmt.Println("The working directory doesn't have any backup.")
+				fmt.Println("The current directory does not have any backups.")
 			default:
-				fmt.Println("Something went wrong for more info check the log file.")
+				fmt.Println("Something went wrong. For more info check the log file.")
 			}
 			return
 		}
@@ -92,15 +92,15 @@ func executeDelete() {
 			logger.Error(fmt.Sprintf("failed to get all the back up of the working directory: %v", err))
 			switch {
 			case errors.Is(err, fileops.ErrNoBackUpDir):
-				fmt.Println("There isn't a backups folder.")
+				fmt.Println("There is no backups folder for this directory.")
 			case errors.Is(err, fileops.ErrGetManifest):
-				fmt.Println("An error occurred trying to read the manifest file of a backup. For more info check the log file.")
+				fmt.Println("An error occurred reading the manifest file of a backup. For more info check the log file.")
 			case errors.Is(err, fileops.ErrNoBackUps):
-				fmt.Println("The working directory doesn't have any backup.")
+				fmt.Println("The current directory does not have any backups.")
 			case errors.Is(err, fileops.ErrDateNotValidFormat):
-				fmt.Println("The format of the dates are not valid, the valid format is YYYY-MM-DD.")
+				fmt.Println("The date format is not valid. The expected format is YYYY-MM-DD.")
 			default:
-				fmt.Println("Something went wrong for more info check the log file.")
+				fmt.Println("Something went wrong. For more info check the log file.")
 			}
 			return
 		}
@@ -114,7 +114,7 @@ func executeDelete() {
 
 func deletePaths(paths []string) {
 	if !deleteSkipConfirm && !confirmDeletion(paths) {
-		fmt.Println("Delete canceled by user.")
+		fmt.Println("Delete canceled by the user.")
 		return
 	}
 
@@ -122,14 +122,14 @@ func deletePaths(paths []string) {
 		logger.Error(fmt.Sprintf("failed to get all the back up of the working directory: %v", err))
 		switch {
 		case errors.Is(err, fileops.ErrFaildedDelete):
-			fmt.Println("An error happen trying to delete the backups for more info check the log file.")
+			fmt.Println("An error occurred trying to delete the backups. For more info check the log file.")
 		default:
-			fmt.Println("Something went wrong for more info check the log file.")
+			fmt.Println("Something went wrong. For more info check the log file.")
 		}
 		return
 	}
 
-	fmt.Println("The backups were deleted correctly.")
+	fmt.Println("The backups were deleted successfully.")
 }
 
 func confirmDeletion(paths []string) bool {

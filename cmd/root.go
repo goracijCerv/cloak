@@ -13,7 +13,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "cloak",
 	Short: "A backup tool for untracked and modified git files",
-	Long:  "Cloak safely backs up untracked or modified files in your git respository.",
+	Long:  "Cloak safely backs up untracked or modified files in your git repository.",
 	//Si no se pasa un subcomando muestra el menu de ayuda
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if err := logger.Init(); err != nil {

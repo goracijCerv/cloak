@@ -59,14 +59,14 @@ func executeDryRun() {
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to get files from git: %v", err))
-		fmt.Println("Something went wrong when getting the files, please check the cloak logs file")
+		fmt.Println("Something went wrong getting the files. Please check the cloak log file.")
 		return
 	}
 
 	finalOutPutDir, _, err := fileops.BuildOutPutDir(outPutDirectory, &gitDirectory, messageComment) //the time.Time is not required in the dry run
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to solve output directory: %v", err))
-		fmt.Println("Unable to solve output directory. Check the cloak logs file.")
+		fmt.Println("Unable to resolve output directory. Check the cloak log file.")
 		return
 	}
 	fmt.Printf("The output directory will be %s \n", filepath.Clean(finalOutPutDir))
@@ -87,7 +87,7 @@ func executeBackup() {
 	finalOutPutDir, timeCreated, err := fileops.BuildOutPutDir(outPutDirectory, &gitDirectory, messageComment)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to solve output directory: %v", err))
-		fmt.Println("Unable to solve output directory. Check the cloak logs file.")
+		fmt.Println("Unable to resolve output directory. Check the cloak log file.")
 		return
 	}
 
@@ -100,14 +100,14 @@ func executeBackup() {
 		if _, err := os.Stat(finalOutPutDir); errors.Is(err, os.ErrNotExist) {
 			if err := isWritable(filepath.Dir(finalOutPutDir)); err != nil {
 				logger.Error(fmt.Sprintf("parent output directory is not writable: %v", err))
-				fmt.Println("No write permission to create the output directory. Check logs.")
+				fmt.Println("No write permission to create the output directory. Check the log file.")
 				return
 			}
 		} else {
 
 			if err := isWritable(finalOutPutDir); err != nil {
 				logger.Error(fmt.Sprintf("output directory is not writable: %v", err))
-				fmt.Println("No write permission for the output directory. Check logs.")
+				fmt.Println("No write permission for the output directory. Check the log file.")
 				return
 			}
 		}
@@ -118,7 +118,7 @@ func executeBackup() {
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to get files from git: %v", err))
-		fmt.Println("Something went wrong when getting the files, please check the cloak logs file")
+		fmt.Println("Something went wrong getting the files. Please check the cloak log file.")
 		return
 	}
 
@@ -134,17 +134,17 @@ func executeBackup() {
 			fmt.Println("No files to back up.")
 
 		case errors.Is(err, fileops.ErrFaildedBackDir):
-			fmt.Println("Failed to create backup directory.")
+			fmt.Println("Failed to create the backup directory.")
 
 		case errors.Is(err, fileops.ErrBackupWithErrors):
-			fmt.Println("The backup finished with errors. You can find the list of failed files in the cloak logs.")
+			fmt.Println("The backup finished with errors. You can find the failed files in the cloak log.")
 
 		case errors.Is(err, fileops.ErrFailedManFile):
-			fmt.Println("Error in the process of generating the manifest file.")
+			fmt.Println("Error generating the manifest file.")
 		case errors.Is(err, fileops.ErrFailedManData):
-			fmt.Println("Error in the process of generating the manifest data.")
+			fmt.Println("Error generating the manifest data.")
 		default:
-			fmt.Println("Someting went wrong please check the cloak logs file.")
+			fmt.Println("Something went wrong. Please check the cloak log file.")
 		}
 		return
 	}
