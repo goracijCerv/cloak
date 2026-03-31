@@ -146,10 +146,7 @@ func AllBackUpsPaths(after string, before string) ([]string, error) {
 			default:
 
 				backUpsPaths = append(backUpsPaths, backupPath)
-				// backups = append(backups, BackupDetails{
-				// 	Path:      backupPath,
-				// 	CreatedAt: manifest.CreatedAt,
-				// })
+
 			}
 
 		}
