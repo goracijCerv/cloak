@@ -41,7 +41,7 @@ func init() {
 	rootCmd.AddCommand(restoreCmd)
 	actualDirectory, _ := os.Getwd()
 
-	restoreCmd.Flags().StringVarP(&restoreTargetDir, "dir", "d", actualDirectory, "Target directory where the backup files will be restored to.")
+	restoreCmd.Flags().StringVarP(&restoreTargetDir, "dir", "d", actualDirectory, "Target git repository to restore the backup into.")
 	restoreCmd.Flags().StringVarP(&backupDirectory, "back", "b", "", "Backup directory to get the files that will be restore.")
 	restoreCmd.Flags().BoolVarP(&skipConfirm, "yes", "y", false, "Avoid asking the user for confirmation if they are sure they want to perform the restore.")
 	restoreCmd.MarkFlagRequired("back")

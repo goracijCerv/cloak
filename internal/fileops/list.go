@@ -23,16 +23,10 @@ type BackupDetails struct {
 
 // ListBackups search all the backups releted to an origin directory
 func ListBackups(repoDir string) ([]BackupInfo, error) {
-	parentDir := filepath.Dir(repoDir)
 	repoName := filepath.Base(repoDir)
-	backupBaseDir := filepath.Join(parentDir, "backup")
-
-	entries, err := os.ReadDir(backupBaseDir)
+	entries, backupBaseDir, err := readBackUpEntries(repoDir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, ErrNoBackUpDir //there are no backups
-		}
-		return nil, fmt.Errorf("%w: %w", ErrFailedBackDir, err)
+		return nil, err
 	}
 
 	prefix := fmt.Sprintf("[%s]", repoName)
@@ -86,19 +80,12 @@ func AllBackUpsPaths(after string, before string) ([]string, error) {
 		return nil, err
 	}
 	repoDir := filepath.Clean(currentDir)
-
-	parentDir := filepath.Dir(repoDir)
 	repoName := filepath.Base(repoDir)
-	backupBaseDir := filepath.Join(parentDir, "backup")
 
-	entries, err := os.ReadDir(backupBaseDir)
+	entries, backupBaseDir, err := readBackUpEntries(repoDir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, ErrNoBackUpDir //there are no backups
-		}
-		return nil, fmt.Errorf("%w: %w", ErrFailedBackDir, err)
+		return nil, err
 	}
-
 	//geting the targets
 	var targetDateAfter, targetDateBefore time.Time
 	if after != "" {
@@ -158,4 +145,20 @@ func AllBackUpsPaths(after string, before string) ([]string, error) {
 
 	return backUpsPaths, nil
 
+}
+
+func readBackUpEntries(repoDir string) ([]os.DirEntry, string, error) {
+
+	parentDir := filepath.Dir(repoDir)
+	backupBaseDir := filepath.Join(parentDir, "backup")
+
+	entries, err := os.ReadDir(backupBaseDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, "", ErrNoBackUpDir //there are no backups
+		}
+		return nil, "", fmt.Errorf("%w: %w", ErrFailedBackDir, err)
+	}
+
+	return entries, backupBaseDir, nil
 }

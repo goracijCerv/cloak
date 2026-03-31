@@ -81,36 +81,7 @@ func executeDelete() {
 			}
 			return
 		}
-
-		if !deleteSkipConfirm {
-			fmt.Printf("⚠️ WARNING: The following %d backup(s) will be permanently deleted:\n", len(backkUpsPaths))
-			for _, v := range backkUpsPaths {
-				fmt.Printf("  %s\n", filepath.Base(v))
-			}
-			fmt.Println("Are you sure? [y/n]:")
-			var response string
-			fmt.Scanln(&response)
-			response = strings.ToLower(strings.TrimSpace(response))
-
-			if response != "y" && response != "yes" {
-				fmt.Println("Delete canceled by the user.")
-				return
-			}
-		}
-
-		if err := fileops.DeleteByPaths(backkUpsPaths...); err != nil {
-			logger.Error(fmt.Sprintf("failed to get delete all the paths: %v", err))
-			switch {
-			case errors.Is(err, fileops.ErrFaildedDelete):
-				fmt.Println("An error happen trying to delete the backups for more info check the log file.")
-			default:
-				fmt.Println("Something went wrong for more info check the log file.")
-			}
-			return
-		}
-
-		fmt.Println("The backups were deleted correctly.")
-		return
+		deletePaths(backkUpsPaths)
 	}
 
 	if deleteBefore != "" || deleteAfter != "" {
@@ -132,57 +103,21 @@ func executeDelete() {
 			}
 			return
 		}
-
-		if !deleteSkipConfirm {
-			fmt.Printf("⚠️ WARNING: The following %d backup(s) will be permanently deleted:\n", len(backkUpsPaths))
-			for _, v := range backkUpsPaths {
-				fmt.Printf("  %s\n", filepath.Base(v))
-			}
-			fmt.Println("Are you sure? [y/n]:")
-			var response string
-			fmt.Scanln(&response)
-			response = strings.ToLower(strings.TrimSpace(response))
-
-			if response != "y" && response != "yes" {
-				fmt.Println("Delete canceled by the user.")
-				return
-			}
-		}
-
-		if err := fileops.DeleteByPaths(backkUpsPaths...); err != nil {
-			logger.Error(fmt.Sprintf("failed to get delete all the paths: %v", err))
-			switch {
-			case errors.Is(err, fileops.ErrFaildedDelete):
-				fmt.Println("An error happen trying to delete the backups for more info check the log file.")
-			default:
-				fmt.Println("Something went wrong for more info check the log file.")
-			}
-			return
-		}
-
-		fmt.Println("The backups were deleted correctly.")
-		return
+		deletePaths(backkUpsPaths)
 	}
 
 	logger.Info("PROCESS: delete given backups paths")
-	if !deleteSkipConfirm {
-		fmt.Printf("⚠️ WARNING: The following %d backup(s) will be permanently deleted:\n", len(deleteBackups))
-		for _, v := range deleteBackups {
-			fmt.Printf("  %s\n", filepath.Base(v))
-		}
-		fmt.Println("Are you sure? [y/n]:")
-		var response string
-		fmt.Scanln(&response)
-		response = strings.ToLower(strings.TrimSpace(response))
+	deletePaths(deleteBackups)
+}
 
-		if response != "y" && response != "yes" {
-			fmt.Println("Delete canceled by the user.")
-			return
-		}
+func deletePaths(paths []string) {
+	if !deleteSkipConfirm && !confirmDeletion(paths) {
+		fmt.Println("Delete canceled by user.")
+		return
 	}
 
-	if err := fileops.DeleteByPaths(deleteBackups...); err != nil {
-		logger.Error(fmt.Sprintf("failed to get delete all the paths: %v", err))
+	if err := fileops.DeleteByPaths(paths...); err != nil {
+		logger.Error(fmt.Sprintf("failed to get all the back up of the working directory: %v", err))
 		switch {
 		case errors.Is(err, fileops.ErrFaildedDelete):
 			fmt.Println("An error happen trying to delete the backups for more info check the log file.")
@@ -193,4 +128,16 @@ func executeDelete() {
 	}
 
 	fmt.Println("The backups were deleted correctly.")
+}
+
+func confirmDeletion(paths []string) bool {
+	fmt.Printf("⚠️ WARNING: The following %d backup(s) will be permanently deleted:\n", len(paths))
+	for _, v := range paths {
+		fmt.Printf("  %s\n", filepath.Base(v))
+	}
+	fmt.Println("Are you sure? [y/n]:")
+	var response string
+	fmt.Scanln(&response)
+	response = strings.ToLower(strings.TrimSpace(response))
+	return response == "y" || response == "yes"
 }

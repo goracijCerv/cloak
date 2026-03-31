@@ -48,7 +48,23 @@ var infoCmd = &cobra.Command{
 			return
 		}
 
-		var sb strings.Builder
+		text := writeText(isColorSupported(), *infoData)
+
+		fmt.Println(text)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(infoCmd)
+}
+
+func isColorSupported() bool {
+	return os.Getenv("NO_COLOR") == ""
+}
+
+func writeText(color bool, infoData fileops.BackupDetails) string {
+	var sb strings.Builder
+	if color {
 		formattedTime := infoData.CreatedAt.Format("02 Jan 2006 at 3:04 pm")
 		divider := display.ColorGray + "=================================================" + display.ColorReset + "\n"
 		sb.WriteString("\n" + display.ColorCyan + "📦 BACKUP DETAILS" + display.ColorReset + "\n")
@@ -67,11 +83,25 @@ var infoCmd = &cobra.Command{
 			sb.WriteString(display.ColorYellow + "The backup doesn't have any files.\n" + display.ColorReset)
 		}
 		sb.WriteString("\n")
+	} else {
+		formattedTime := infoData.CreatedAt.Format("02 Jan 2006 at 3:04 pm")
+		divider := "=================================================\n"
+		sb.WriteString("\n📦 BACKUP DETAILS\n")
+		sb.WriteString(divider)
+		fmt.Fprintf(&sb, "📍 Path: %s\n", infoData.Path)
+		fmt.Fprintf(&sb, "📅 Created: %s\n", formattedTime)
+		fmt.Fprintf(&sb, "📄 Files: %d total\n", len(infoData.Entries))
+		sb.WriteString(divider)
 
-		fmt.Println(sb.String())
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(infoCmd)
+		if len(infoData.Entries) > 0 {
+			sb.WriteString("List of original files saved:\n")
+			for _, entry := range infoData.Entries {
+				fmt.Fprintf(&sb, "  - %s\n", entry.OriginalPath)
+			}
+		} else {
+			sb.WriteString("The backup doesn't have any files.\n")
+		}
+		sb.WriteString("\n")
+	}
+	return sb.String()
 }
