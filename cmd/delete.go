@@ -12,10 +12,11 @@ import (
 )
 
 var (
-	deleteBackups []string
-	deleteAll     bool
-	deleteBefore  string
-	deleteAfter   string
+	deleteBackups     []string
+	deleteAll         bool
+	deleteBefore      string
+	deleteAfter       string
+	deleteSkipConfirm bool
 )
 
 var deleteCmd = &cobra.Command{
@@ -50,7 +51,7 @@ func init() {
 	deleteCmd.Flags().StringVar(&deleteBefore, "before", "", "Delete backups created before this date (Format: YYYY-MM-DD).")
 	deleteCmd.Flags().StringVar(&deleteAfter, "after", "", "Delete backups created after this date (Format: YYYY-MM-DD).")
 
-	deleteCmd.Flags().BoolVarP(&skipConfirm, "yes", "y", false, "Avoid asking for confirmation before deleting.")
+	deleteCmd.Flags().BoolVarP(&deleteSkipConfirm, "yes", "y", false, "Avoid asking for confirmation before deleting.")
 
 	//exclusivity rules for the flags
 	deleteCmd.MarkFlagsMutuallyExclusive("back", "all")
@@ -62,9 +63,6 @@ func init() {
 }
 
 func executeDelete() {
-	fmt.Println("[DEBUG] Iniciando proceso de borrado...")
-	fmt.Printf("[DEBUG] Rutas especificadas: %v\n", deleteBackups)
-	fmt.Printf("[DEBUG] All: %v | Before: %s | After: %s | SkipConfirm: %v\n", deleteAll, deleteBefore, deleteAfter, skipConfirm)
 
 	if deleteAll {
 		logger.Info("PROCESS: delete all")
@@ -84,7 +82,7 @@ func executeDelete() {
 			return
 		}
 
-		if !skipConfirm {
+		if !deleteSkipConfirm {
 			fmt.Printf("⚠️ WARNING: The following %d backup(s) will be permanently deleted:\n", len(backkUpsPaths))
 			for _, v := range backkUpsPaths {
 				fmt.Printf("  %s\n", filepath.Base(v))
@@ -135,7 +133,7 @@ func executeDelete() {
 			return
 		}
 
-		if !skipConfirm {
+		if !deleteSkipConfirm {
 			fmt.Printf("⚠️ WARNING: The following %d backup(s) will be permanently deleted:\n", len(backkUpsPaths))
 			for _, v := range backkUpsPaths {
 				fmt.Printf("  %s\n", filepath.Base(v))
@@ -167,7 +165,7 @@ func executeDelete() {
 	}
 
 	logger.Info("PROCESS: delete given backups paths")
-	if !skipConfirm {
+	if !deleteSkipConfirm {
 		fmt.Printf("⚠️ WARNING: The following %d backup(s) will be permanently deleted:\n", len(deleteBackups))
 		for _, v := range deleteBackups {
 			fmt.Printf("  %s\n", filepath.Base(v))

@@ -7,41 +7,42 @@ import (
 )
 
 func removeDirectory(pathVal string) error {
-	err := os.RemoveAll(pathVal)
-	if err != nil {
-		return err
-	} else {
-		return nil
-	}
+	return os.RemoveAll(pathVal)
 }
 
-func validatePath(pathVal string) (bool, error) {
+func validatePath(pathVal string) error {
 	//check if path is not empty
 	if pathVal == "" {
-		return false, ErrNoPaths
+		return ErrNoPaths
 	}
 
 	//check if the given path is absolute
 	if !filepath.IsAbs(pathVal) {
-		return false, ErrNoAbsolute
+		return ErrNoAbsolute
 	}
 
 	//check if the given path exist
 	_, err := os.Stat(pathVal)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return false, ErrNoPathExist
+			return ErrNoPathExist
 		}
-		return false, fmt.Errorf("failed to check the backup directory %s: %w", pathVal, err)
+		return fmt.Errorf("failed to check the backup directory %s: %w", pathVal, err)
 	}
 
-	return true, nil
+	//check if it is an backup cloak directory
+	_, err = readManifest(pathVal)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrGetManifest, err)
+	}
+
+	return nil
 
 }
 
 func DeleteByPaths(pathVal ...string) error {
 	for _, v := range pathVal {
-		if ok, err := validatePath(v); ok == false && err != nil {
+		if err := validatePath(v); err != nil {
 			return err
 		}
 	}
@@ -54,29 +55,3 @@ func DeleteByPaths(pathVal ...string) error {
 
 	return nil
 }
-
-// func DeleteAll() error {
-// 	backUpPaths, err := allBackUpsPaths("", "")
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if err := DeleteByPaths(backUpPaths...); err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-// func DeleteFilterdDates(after string, before string) error {
-// 	backUpPaths, err := allBackUpsPaths(after, before)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if err := DeleteByPaths(backUpPaths...); err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }

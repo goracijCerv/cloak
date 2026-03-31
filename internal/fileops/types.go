@@ -17,8 +17,7 @@ type ManifestEntry struct {
 }
 
 var (
-	ErrNoFiles = errors.New("no files provided to back up")
-	// ErrResolveOutputDir  = errors.New("failed to resolve output directory")
+	ErrNoFiles            = errors.New("no files provided to back up")
 	ErrBackupWithErrors   = errors.New("backup completed with")
 	ErrFaildedBackDir     = errors.New("failed to create backup directory")
 	ErrFailedManData      = errors.New("failed to generated manifest data")
