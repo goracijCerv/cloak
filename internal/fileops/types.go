@@ -32,5 +32,5 @@ var (
 	ErrNoAbsolute         = errors.New("the path is not absolute")
 	ErrNoPathExist        = errors.New("path doesn't exist")
 	ErrFaildedDelete      = errors.New("failed to delete directory")
-	ErrDateNotValidFormat = errors.New("Date doestn have valid format")
+	ErrDateNotValidFormat = errors.New("date does not have a valid format")
 )
