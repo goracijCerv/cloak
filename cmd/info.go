@@ -21,11 +21,23 @@ var infoCmd = &cobra.Command{
 		logger.Info("COMMAND: info")
 		backUpPath := args[0]
 		if backUpPath == "" {
+
+			if outputJSON {
+				display.PrintJSON("error", "The argument is empty", nil, fmt.Errorf("empty path argument"))
+				return
+			}
+
 			fmt.Println("The argument is empty.")
 			return
 		}
 
 		if !filepath.IsAbs(backUpPath) {
+
+			if outputJSON {
+				display.PrintJSON("error", "The given path is not an absolute path", nil, fmt.Errorf("non-absolute path: %s", backUpPath))
+				return
+			}
+
 			fmt.Println("The given path is not an absolute path.")
 			return
 		}
@@ -33,10 +45,22 @@ var infoCmd = &cobra.Command{
 		_, err := os.Stat(backUpPath)
 		if err != nil {
 			if os.IsNotExist(err) {
+
+				if outputJSON {
+					display.PrintJSON("error", "The given directory does not exist", nil, err)
+					return
+				}
+
 				fmt.Println("The given directory does not exist:", backUpPath)
 				return
 			}
 			logger.Error(fmt.Sprintf("failed to check the backup directory %s: %v", backUpPath, err))
+
+			if outputJSON {
+				display.PrintJSON("error", "Something went wrong checking the directory", nil, err)
+				return
+			}
+
 			fmt.Println("Something went wrong. For more info check the log file.")
 			return
 		}
@@ -44,12 +68,22 @@ var infoCmd = &cobra.Command{
 		infoData, err := fileops.GetBackupInfo(backUpPath)
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to get the backup info: %v", err))
+
+			if outputJSON {
+				display.PrintJSON("error", "Failed to get the backup info", nil, err)
+				return
+			}
+
 			fmt.Println("Failed to get the backup info. For more info check the log file.")
 			return
 		}
 
-		text := writeText(isColorSupported(), *infoData)
+		if outputJSON {
+			display.PrintJSON("success", "Backup info retrieved successfully", infoData, nil)
+			return
+		}
 
+		text := writeText(isColorSupported(), *infoData)
 		fmt.Println(text)
 	},
 }

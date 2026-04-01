@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -13,6 +14,7 @@ type BackupInfo struct {
 	Name      string
 	FileCount int
 	Path      string
+	CreatedAt time.Time
 }
 
 type BackupDetails struct {
@@ -37,17 +39,25 @@ func ListBackups(repoDir string) ([]BackupInfo, error) {
 		if entry.IsDir() && strings.HasPrefix(entry.Name(), prefix) {
 			backupPath := filepath.Join(backupBaseDir, entry.Name())
 			fileCount := 0
+			var date time.Time
 			if manifest, err := readManifest(backupPath); err == nil {
 				fileCount = len(manifest.Entries)
+				date = manifest.CreatedAt
 			}
 
 			backups = append(backups, BackupInfo{
 				Name:      entry.Name(),
 				FileCount: fileCount,
 				Path:      backupPath,
+				CreatedAt: date,
 			})
 		}
 	}
+
+	//decending ording the backups
+	sort.Slice(backups, func(i, j int) bool {
+		return backups[i].CreatedAt.After(backups[j].CreatedAt)
+	})
 
 	if len(backups) == 0 {
 		return nil, ErrNoBackUps

@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var outputJSON bool
+
 // rootCmd represent the base command that is called without any subcomand in these case cloak is the base comand
 
 var rootCmd = &cobra.Command{
@@ -35,4 +37,5 @@ func Execute() {
 
 func init() {
 	//Global flags will be here when they are needed
+	rootCmd.PersistentFlags().BoolVar(&outputJSON, "json", false, "Output results in JSON format instead of plain text.")
 }

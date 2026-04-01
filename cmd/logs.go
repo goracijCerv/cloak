@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/goracijCerv/cloak/internal/display"
 	"github.com/goracijCerv/cloak/internal/logger"
 	"github.com/spf13/cobra"
 )
@@ -25,18 +27,34 @@ var logsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logPath, err := logger.LogPath()
 		if err != nil {
+			if outputJSON {
+				display.PrintJSON("error", "Could not resolve log file path", nil, err)
+				return
+			}
 			fmt.Println("Could not resolve log file path:", err)
 			return
 		}
 
 		if showPath {
+			if outputJSON {
+				display.PrintJSON("success", "Log path retrieved successfully", map[string]string{"path": logPath}, nil)
+				return
+			}
 			fmt.Println(logPath)
 			return
 		}
 
 		if clearLogs {
 			if err := os.WriteFile(logPath, []byte{}, 0644); err != nil {
+				if outputJSON {
+					display.PrintJSON("error", "Failed to clear log file", nil, err)
+					return
+				}
 				fmt.Println("Failed to clear log file:", err)
+				return
+			}
+			if outputJSON {
+				display.PrintJSON("success", "Log file cleared", nil, nil)
 				return
 			}
 			fmt.Println("Log file cleared.")
@@ -44,16 +62,45 @@ var logsCmd = &cobra.Command{
 		}
 
 		if _, err := os.Stat(logPath); os.IsNotExist(err) {
+			if outputJSON {
+				display.PrintJSON("error", "No log file found. Run a backup or restore first.", nil, fmt.Errorf("file not found"))
+				return
+			}
 			fmt.Println("No log file found. Run a backup or restore first.")
 			return
 		}
 
+		var lines []string
+		var readErr error
+
 		if showAll {
-			printAll(logPath)
+			lines, readErr = getAllLines(logPath)
+		} else {
+			lines, readErr = getTailLines(logPath, tailLines)
+		}
+
+		if readErr != nil {
+			if outputJSON {
+				display.PrintJSON("error", "Failed to read log file", nil, readErr)
+				return
+			}
+			fmt.Println("Failed to read log file.", readErr)
 			return
 		}
 
-		printTail(logPath, tailLines)
+		if outputJSON {
+			display.PrintJSON("success", "Logs retrieved successfully", map[string]interface{}{"lines": lines}, nil)
+			return
+		}
+
+		if len(lines) == 0 {
+			fmt.Println("Log file is empty.")
+			return
+		}
+
+		for _, line := range lines {
+			fmt.Println(line)
+		}
 	},
 }
 
@@ -65,26 +112,28 @@ func init() {
 	logsCmd.Flags().IntVar(&tailLines, "tail", 20, "Number of recent lines to show.")
 }
 
-func printAll(logpath string) {
+func getAllLines(logpath string) ([]string, error) {
 	content, err := os.ReadFile(logpath)
 	if err != nil {
-		fmt.Println("Failed to read log file.", err)
-		return
+		return nil, err
 	}
 
 	if len(content) == 0 {
-		fmt.Println("Log file is empty.")
-		return
+		return []string{}, nil
 	}
 
-	fmt.Print(string(content))
+	lines := strings.Split(string(content), "\n")
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
+
+	return lines, nil
 }
 
-func printTail(logPath string, n int) {
+func getTailLines(logPath string, n int) ([]string, error) {
 	f, err := os.Open(logPath)
 	if err != nil {
-		fmt.Println("Failed to open log file.", err)
-		return
+		return nil, err
 	}
 
 	defer f.Close()
@@ -98,12 +147,9 @@ func printTail(logPath string, n int) {
 		}
 	}
 
-	if len(lines) == 0 {
-		fmt.Println("Log file is empty.")
-		return
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
 
-	for _, line := range lines {
-		fmt.Println(line)
-	}
+	return lines, nil
 }

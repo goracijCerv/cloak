@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/goracijCerv/cloak/internal/display"
 	"github.com/goracijCerv/cloak/internal/fileops"
 	"github.com/goracijCerv/cloak/internal/git"
 	"github.com/goracijCerv/cloak/internal/logger"
@@ -55,10 +56,13 @@ func init() {
 
 func executeDryRun() {
 	logger.Info("PROCESS: dry-run")
-	fmt.Printf("Searching in: %s\n", gitDirectory)
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to get files from git: %v", err))
+		if outputJSON {
+			display.PrintJSON("error", "Failed to get files from git", nil, err)
+			return
+		}
 		fmt.Println("Something went wrong getting the files. Please check the cloak log file.")
 		return
 	}
@@ -66,9 +70,25 @@ func executeDryRun() {
 	finalOutPutDir, _, err := fileops.BuildOutPutDir(outPutDirectory, &gitDirectory, messageComment) //the time.Time is not required in the dry run
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to solve output directory: %v", err))
+		if outputJSON {
+			display.PrintJSON("error", "Unable to resolve output directory", nil, err)
+			return
+		}
 		fmt.Println("Unable to resolve output directory. Check the cloak log file.")
 		return
 	}
+
+	if outputJSON {
+		data := map[string]interface{}{
+			"OutputDirectory": filepath.Clean(finalOutPutDir),
+			"TotalFiles":      len(filesToCopy),
+			"FilesToCopy":     filesToCopy,
+		}
+		display.PrintJSON("success", "Dry-run executed successfully", data, nil)
+		return
+	}
+
+	fmt.Printf("Searching in: %s\n", gitDirectory)
 	fmt.Printf("The output directory will be %s \n", filepath.Clean(finalOutPutDir))
 	if len(filesToCopy) == 0 {
 		fmt.Println("Nothing to back up: no untracked or modified files found.")
@@ -87,12 +107,20 @@ func executeBackup() {
 	finalOutPutDir, timeCreated, err := fileops.BuildOutPutDir(outPutDirectory, &gitDirectory, messageComment)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to solve output directory: %v", err))
+		if outputJSON {
+			display.PrintJSON("error", "Unable to resolve output directory", nil, err)
+			return
+		}
 		fmt.Println("Unable to resolve output directory. Check the cloak log file.")
 		return
 	}
 
 	if outPutDirectory != "" {
 		if !filepath.IsAbs(finalOutPutDir) {
+			if outputJSON {
+				display.PrintJSON("error", "Output directory path is not absolute", nil, fmt.Errorf("not absolute path"))
+				return
+			}
 			fmt.Println("Output directory path is not absolute.")
 			return
 		}
@@ -100,6 +128,10 @@ func executeBackup() {
 		if _, err := os.Stat(finalOutPutDir); errors.Is(err, os.ErrNotExist) {
 			if err := isWritable(filepath.Dir(finalOutPutDir)); err != nil {
 				logger.Error(fmt.Sprintf("parent output directory is not writable: %v", err))
+				if outputJSON {
+					display.PrintJSON("error", "No write permission to create the output directory", nil, err)
+					return
+				}
 				fmt.Println("No write permission to create the output directory. Check the log file.")
 				return
 			}
@@ -107,6 +139,10 @@ func executeBackup() {
 
 			if err := isWritable(finalOutPutDir); err != nil {
 				logger.Error(fmt.Sprintf("output directory is not writable: %v", err))
+				if outputJSON {
+					display.PrintJSON("error", "No write permission for the output directory", nil, err)
+					return
+				}
 				fmt.Println("No write permission for the output directory. Check the log file.")
 				return
 			}
@@ -118,17 +154,32 @@ func executeBackup() {
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to get files from git: %v", err))
+		if outputJSON {
+			display.PrintJSON("error", "Failed to get files from git", nil, err)
+			return
+		}
 		fmt.Println("Something went wrong getting the files. Please check the cloak log file.")
 		return
 	}
 
 	if len(filesToCopy) == 0 {
+		if outputJSON {
+			// noting to backup.
+			display.PrintJSON("success", "Nothing to back up", map[string]interface{}{"TotalFiles": 0}, nil)
+			return
+		}
 		fmt.Println("Nothing to back up: no untracked or modified files found.")
 		return
 	}
 
-	if err := fileops.CreateNewBackUp(filesToCopy, finalOutPutDir, messageComment, &gitDirectory, timeCreated); err != nil {
+	if err := fileops.CreateNewBackUp(filesToCopy, finalOutPutDir, &gitDirectory, timeCreated); err != nil {
 		logger.Error(fmt.Sprintf("failed to make the backup: %v", err))
+
+		if outputJSON {
+			display.PrintJSON("error", "Failed to make the backup", nil, err)
+			return
+		}
+
 		switch {
 		case errors.Is(err, fileops.ErrNoFiles):
 			fmt.Println("No files to back up.")
@@ -146,6 +197,16 @@ func executeBackup() {
 		default:
 			fmt.Println("Something went wrong. Please check the cloak log file.")
 		}
+		return
+	}
+
+	if outputJSON {
+		data := map[string]interface{}{
+			"OutputDirectory": finalOutPutDir,
+			"TotalFiles":      len(filesToCopy),
+			"FilesBackedUp":   filesToCopy,
+		}
+		display.PrintJSON("success", "Backup completed successfully", data, nil)
 		return
 	}
 

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/goracijCerv/cloak/internal/display"
 	"github.com/goracijCerv/cloak/internal/fileops"
 	"github.com/goracijCerv/cloak/internal/logger"
 	"github.com/spf13/cobra"
@@ -22,8 +23,14 @@ var restoreCmd = &cobra.Command{
 	Use:   "restore",
 	Short: "Restore a backup of a git repository into the original folder",
 	Run: func(cmd *cobra.Command, args []string) {
+
+		if outputJSON && !skipConfirm {
+			display.PrintJSON("error", "The --yes flag is required when using --json to prevent the terminal from hanging", nil, fmt.Errorf("missing --yes flag"))
+			return
+		}
+
 		if !skipConfirm {
-			fmt.Println("⚠️ WARNING: You are going to overwrite files in the specific directory. Are you sure? [y/n]:")
+			fmt.Println(" WARNING: You are going to overwrite files in the specific directory. Are you sure? [y/n]:")
 			var response string
 			fmt.Scanln(&response)
 			response = strings.ToLower(strings.TrimSpace(response))
@@ -50,11 +57,19 @@ func init() {
 func executeRestore() {
 	logger.Info("COMMAND: restore\nPROCESS:restoring files")
 	if restoreTargetDir == "" || backupDirectory == "" {
+		if outputJSON {
+			display.PrintJSON("error", "No path provided for --dir or --back", nil, fmt.Errorf("missing paths"))
+			return
+		}
 		fmt.Println("No path provided for --dir or --back.")
 		return
 	}
 
 	if !filepath.IsAbs(backupDirectory) {
+		if outputJSON {
+			display.PrintJSON("error", "The path to the backup directory is not absolute", nil, fmt.Errorf("not absolute path"))
+			return
+		}
 		fmt.Println("The path to the backup directory is not absolute.")
 		return
 	}
@@ -62,16 +77,30 @@ func executeRestore() {
 	_, err := os.Stat(backupDirectory)
 	if err != nil {
 		if os.IsNotExist(err) {
+			if outputJSON {
+				display.PrintJSON("error", "The given directory does not exist", nil, err)
+				return
+			}
 			fmt.Println("The given directory does not exist:", backupDirectory)
 			return
 		}
 		logger.Error(fmt.Sprintf("failed to check the backup directory %s: %v", backupDirectory, err))
+		if outputJSON {
+			display.PrintJSON("error", "Something went wrong checking the directory", nil, err)
+			return
+		}
 		fmt.Println("Something went wrong. For more info check the log file.")
 		return
 	}
 
 	if err := fileops.RestoreBackUp(backupDirectory, restoreTargetDir); err != nil {
 		logger.Error(fmt.Sprintf("failded to make the restore: %v", err))
+
+		if outputJSON {
+			display.PrintJSON("error", "Failed to restore backup", nil, err)
+			return
+		}
+
 		switch {
 		case errors.Is(err, fileops.ErrEmptyManifest):
 			fmt.Println("The backup folder does not have any files to restore.")
@@ -82,6 +111,15 @@ func executeRestore() {
 		default:
 			fmt.Println("Something went wrong. Please check the cloak log file.")
 		}
+		return
+	}
+
+	if outputJSON {
+		data := map[string]interface{}{
+			"RestoredFrom": backupDirectory,
+			"RestoredTo":   restoreTargetDir,
+		}
+		display.PrintJSON("success", "Restoration completed successfully", data, nil)
 		return
 	}
 

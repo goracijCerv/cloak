@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/goracijCerv/cloak/internal/display"
 	"github.com/goracijCerv/cloak/internal/fileops"
 	"github.com/goracijCerv/cloak/internal/logger"
 	"github.com/spf13/cobra"
@@ -21,21 +22,33 @@ var (
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Permently delete one or more backups.",
-	Long: `Delete specific backups by path, or filter them by date. 
+	Short: "Permanently delete one or more backups.",
+	Long: `Permanently delete one or more backups by path, or filter them by date.
 You can delete multiple backups at once.
 
 Examples:
-  cloak delete --back /ruta/al/backup1 --back /ruta/al/backup2
+  cloak delete --back /home/user/backup/[myrepo]2026-03-01_10-00-00
+  cloak delete --back /home/user/backup/[myrepo]2026-03-01_10-00-00 --back /home/user/backup/[myrepo]2026-04-01_10-00-00
   cloak delete --all
+  cloak delete --before 2026-03-01
+  cloak delete --after 2026-01-01
   cloak delete --before 2026-03-01 --after 2026-01-01
-  cloak delete --all -y`,
+  cloak delete --all --yes`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Info("COMMAND: delete")
 
 		if len(deleteBackups) == 0 && !deleteAll && deleteBefore == "" && deleteAfter == "" {
+			if outputJSON {
+				display.PrintJSON("error", "You must specify what to delete (--back, --all, --before, or --after).", nil, fmt.Errorf("no target specified"))
+				return
+			}
 			fmt.Println("You must specify what to delete (--back, --all, --before, or --after).")
 			cmd.Help()
+			return
+		}
+
+		if outputJSON && !deleteSkipConfirm {
+			display.PrintJSON("error", "The --yes flag is required when using --json to prevent the terminal from hanging", nil, fmt.Errorf("missing --yes flag"))
 			return
 		}
 
@@ -69,6 +82,10 @@ func executeDelete() {
 		backkUpsPaths, err := fileops.AllBackUpsPaths("", "")
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to get all the back up of the working directory: %v", err))
+			if outputJSON && !deleteSkipConfirm {
+				display.PrintJSON("error", "The --yes flag is required when using --json to prevent the terminal from hanging", nil, fmt.Errorf("missing --yes flag"))
+				return
+			}
 			switch {
 			case errors.Is(err, fileops.ErrNoBackUpDir):
 				fmt.Println("There is no backups folder for this directory.")
@@ -90,6 +107,10 @@ func executeDelete() {
 		backkUpsPaths, err := fileops.AllBackUpsPaths(deleteAfter, deleteBefore)
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to get all the back up of the working directory: %v", err))
+			if outputJSON {
+				display.PrintJSON("error", "Failed to filter backups by date", nil, err)
+				return
+			}
 			switch {
 			case errors.Is(err, fileops.ErrNoBackUpDir):
 				fmt.Println("There is no backups folder for this directory.")
@@ -114,12 +135,20 @@ func executeDelete() {
 
 func deletePaths(paths []string) {
 	if !deleteSkipConfirm && !confirmDeletion(paths) {
+		if outputJSON {
+			display.PrintJSON("success", "Delete canceled by the user", nil, nil)
+			return
+		}
 		fmt.Println("Delete canceled by the user.")
 		return
 	}
 
 	if err := fileops.DeleteByPaths(paths...); err != nil {
 		logger.Error(fmt.Sprintf("failed to get all the back up of the working directory: %v", err))
+		if outputJSON {
+			display.PrintJSON("error", "Failed to delete one or more backups", nil, err)
+			return
+		}
 		switch {
 		case errors.Is(err, fileops.ErrFaildedDelete):
 			fmt.Println("An error occurred trying to delete the backups. For more info check the log file.")
@@ -129,11 +158,20 @@ func deletePaths(paths []string) {
 		return
 	}
 
+	if outputJSON {
+		data := map[string]interface{}{
+			"DeletedCount": len(paths),
+			"DeletedPaths": paths,
+		}
+		display.PrintJSON("success", "The backups were deleted successfully", data, nil)
+		return
+	}
+
 	fmt.Println("The backups were deleted successfully.")
 }
 
 func confirmDeletion(paths []string) bool {
-	fmt.Printf("⚠️ WARNING: The following %d backup(s) will be permanently deleted:\n", len(paths))
+	fmt.Printf(" WARNING: The following %d backup(s) will be permanently deleted:\n", len(paths))
 	for _, v := range paths {
 		fmt.Printf("  %s\n", filepath.Base(v))
 	}

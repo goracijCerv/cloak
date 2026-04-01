@@ -89,16 +89,39 @@ func copyFile(originPath string, destDir string, rootProject string) (string, st
 
 	defer origin.Close()
 
+	//getting file size to compare with the final copy
+	originInfo, err := origin.Stat()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read source file info %q: %w", originPath, err)
+	}
+	expectedSize := originInfo.Size()
+
 	dest, err := os.Create(destPath)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create destination file %q: %w", destPath, err)
 	}
 
-	defer dest.Close()
+	writtenBytes, copyErr := io.Copy(dest, origin)
+	syncErr := dest.Sync()
+	closeErr := dest.Close()
 
-	if _, err = io.Copy(dest, origin); err != nil {
-		return "", "", fmt.Errorf("failed to copy %q to %q: %w", originPath, destPath, err)
+	if copyErr != nil {
+		return "", "", fmt.Errorf("failed to copy %q to %q: %w", originPath, destPath, copyErr)
 	}
+	if syncErr != nil {
+		return "", "", fmt.Errorf("failed to sync file to disk %q: %w", destPath, syncErr)
+	}
+	if closeErr != nil {
+		return "", "", fmt.Errorf("failed to close destination file %q: %w", destPath, closeErr)
+	}
+
+	if writtenBytes != expectedSize {
+		os.Remove(destPath) // Borramos el archivo corrupto
+		return "", "", fmt.Errorf("verification failed for %q: expected %d bytes, wrote %d bytes", originPath, expectedSize, writtenBytes)
+	}
+	// if _, err = io.Copy(dest, origin); err != nil {
+	// 	return "", "", fmt.Errorf("failed to copy %q to %q: %w", originPath, destPath, err)
+	// }
 
 	return filepath.Clean(relativePath), filepath.Base(destPath), nil
 
@@ -134,7 +157,7 @@ func BuildOutPutDir(outPutDir string, originDir *string, message string) (string
 	return filepath.Clean(filepath.Join(parentDir, "backup", backupFolderName)), currentTime, nil
 }
 
-func CreateNewBackUp(files []string, finalOutPutDir string, message string, originDir *string, timeCreated time.Time) error {
+func CreateNewBackUp(files []string, finalOutPutDir string, originDir *string, timeCreated time.Time) error {
 	if len(files) == 0 {
 		return ErrNoFiles
 	}
@@ -207,7 +230,7 @@ func readManifest(backupDir string) (*Manifest, error) {
 
 	var manifest Manifest
 	if err := json.Unmarshal(bytes, &manifest); err != nil {
-		return nil, fmt.Errorf("the manifest.json file is dameged or it was modified: %w", err)
+		return nil, fmt.Errorf("the manifest.json file is damaged or it was modified %w", err)
 	}
 
 	return &manifest, nil

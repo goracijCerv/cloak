@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"text/tabwriter"
 
+	"github.com/goracijCerv/cloak/internal/display"
 	"github.com/goracijCerv/cloak/internal/fileops"
 	"github.com/goracijCerv/cloak/internal/logger"
 	"github.com/spf13/cobra"
@@ -20,6 +21,10 @@ var listCmd = &cobra.Command{
 		currentDir, err := os.Getwd()
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to get the working directory: %v", err))
+			if outputJSON {
+				display.PrintJSON("error", "Failed to get the working directory", nil, err)
+				return
+			}
 			fmt.Println("Failed to get the working directory. For more info check the log file.")
 			return
 		}
@@ -28,6 +33,10 @@ var listCmd = &cobra.Command{
 		backups, err := fileops.ListBackups(repoDir)
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to get the list: %v", err))
+			if outputJSON {
+				display.PrintJSON("error", "Failed to retrieve backups", nil, err)
+				return
+			}
 			switch {
 			case errors.Is(err, fileops.ErrNoBackUps):
 				fmt.Println("There are no backups for this directory.")
@@ -41,6 +50,11 @@ var listCmd = &cobra.Command{
 			default:
 				fmt.Println("Something went wrong. For more info check the log file.")
 			}
+			return
+		}
+
+		if outputJSON {
+			display.PrintJSON("success", "Backups retrieved successfully", backups, nil)
 			return
 		}
 
