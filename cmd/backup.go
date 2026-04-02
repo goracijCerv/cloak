@@ -110,6 +110,7 @@ func executeBackup() {
 	if outPutDirectory == "" && appConfig.DefaultOutputDir != "" {
 		outPutDirectory = appConfig.DefaultOutputDir
 	}
+
 	finalOutPutDir, timeCreated, err := fileops.BuildOutPutDir(outPutDirectory, &gitDirectory, messageComment)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to solve output directory: %v", err))
@@ -156,7 +157,6 @@ func executeBackup() {
 
 	}
 
-	fmt.Printf("Searching in: %s\n", gitDirectory)
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to get files from git: %v", err))
@@ -176,6 +176,11 @@ func executeBackup() {
 		}
 		fmt.Println("Nothing to back up: no untracked or modified files found.")
 		return
+	}
+
+	if !outputJSON {
+		fmt.Printf("Searching in: %s\n", gitDirectory)
+		fmt.Println("Backup destination:", finalOutPutDir)
 	}
 
 	if err := fileops.CreateNewBackUp(filesToCopy, finalOutPutDir, &gitDirectory, timeCreated); err != nil {

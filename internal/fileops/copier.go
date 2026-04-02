@@ -116,7 +116,7 @@ func copyFile(originPath string, destDir string, rootProject string) (string, st
 	}
 
 	if writtenBytes != expectedSize {
-		os.Remove(destPath) // Borramos el archivo corrupto
+		os.Remove(destPath) // remove the corrupted file
 		return "", "", fmt.Errorf("verification failed for %q: expected %d bytes, wrote %d bytes", originPath, expectedSize, writtenBytes)
 	}
 
@@ -158,8 +158,6 @@ func CreateNewBackUp(files []string, finalOutPutDir string, originDir *string, t
 	if len(files) == 0 {
 		return ErrNoFiles
 	}
-
-	fmt.Println("Backup destination:", finalOutPutDir)
 
 	//Creating directory
 	if _, err := os.Stat(finalOutPutDir); errors.Is(err, os.ErrNotExist) {
@@ -252,15 +250,35 @@ func restoreFile(fileToRestore string, destinyPath string) error {
 
 	defer origin.Close()
 
+	//getting file size to compare with the final copy
+	originInfo, err := origin.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to read source file info %q: %w", fileToRestore, err)
+	}
+
+	expectedSize := originInfo.Size()
 	dest, err := os.Create(destinyPath)
 	if err != nil {
 		return fmt.Errorf("failed to create destination file %q: %w", destinyPath, err)
 	}
 
-	defer dest.Close()
+	writtenBytes, copyErr := io.Copy(dest, origin)
+	syncErr := dest.Sync()
+	closeErr := dest.Close()
 
-	if _, err = io.Copy(dest, origin); err != nil {
-		return fmt.Errorf("failed to restore %q to %q: %w", fileToRestore, destinyPath, err)
+	if copyErr != nil {
+		return fmt.Errorf("failed to copy %q to %q: %w", fileToRestore, destinyPath, copyErr)
+	}
+	if syncErr != nil {
+		return fmt.Errorf("failed to sync file to disk %q: %w", destinyPath, syncErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("failed to close destination file %q: %w", destinyPath, closeErr)
+	}
+
+	if writtenBytes != expectedSize {
+		os.Remove(destinyPath) // remove the corrupted file
+		return fmt.Errorf("verification failed for %q: expected %d bytes, wrote %d bytes", fileToRestore, expectedSize, writtenBytes)
 	}
 
 	return nil
