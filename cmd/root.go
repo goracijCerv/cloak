@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/goracijCerv/cloak/internal/config"
 	"github.com/goracijCerv/cloak/internal/logger"
 	"github.com/spf13/cobra"
 )
 
-var outputJSON bool
+var (
+	outputJSON bool
+	appConfig  *config.AppConfig
+)
 
 // rootCmd represent the base command that is called without any subcomand in these case cloak is the base comand
 
@@ -20,6 +24,18 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if err := logger.Init(); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: could not initialize log file: %v\n", err)
+		}
+
+		cfg, err := config.Load()
+		if err != nil {
+			logger.Error(fmt.Sprintf("Failed to load config.json: %v", err))
+			appConfig = &config.AppConfig{} // Fallback
+		} else {
+			appConfig = cfg
+		}
+
+		if appConfig.DefaultJSONOutput && !cmd.Flags().Changed("json") {
+			outputJSON = true
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {

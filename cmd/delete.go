@@ -134,7 +134,8 @@ func executeDelete() {
 }
 
 func deletePaths(paths []string) {
-	if !deleteSkipConfirm && !confirmDeletion(paths) {
+	shouldSkip := deleteSkipConfirm || appConfig.AlwaysSkipConfirm
+	if !shouldSkip && !confirmDeletion(paths) {
 		if outputJSON {
 			display.PrintJSON("success", "Delete canceled by the user", nil, nil)
 			return

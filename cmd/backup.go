@@ -56,6 +56,10 @@ func init() {
 
 func executeDryRun() {
 	logger.Info("PROCESS: dry-run")
+	if outPutDirectory == "" && appConfig.DefaultOutputDir != "" {
+		outPutDirectory = appConfig.DefaultOutputDir
+	}
+
 	filesToCopy, err := git.GetFiles(&gitDirectory)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to get files from git: %v", err))
@@ -103,7 +107,9 @@ func executeDryRun() {
 
 func executeBackup() {
 	logger.Info("PROCESS: backing up files")
-
+	if outPutDirectory == "" && appConfig.DefaultOutputDir != "" {
+		outPutDirectory = appConfig.DefaultOutputDir
+	}
 	finalOutPutDir, timeCreated, err := fileops.BuildOutPutDir(outPutDirectory, &gitDirectory, messageComment)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to solve output directory: %v", err))

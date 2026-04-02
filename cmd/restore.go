@@ -23,13 +23,13 @@ var restoreCmd = &cobra.Command{
 	Use:   "restore",
 	Short: "Restore a backup of a git repository into the original folder",
 	Run: func(cmd *cobra.Command, args []string) {
-
-		if outputJSON && !skipConfirm {
+		shouldSkip := skipConfirm || appConfig.AlwaysSkipConfirm
+		if outputJSON && !shouldSkip {
 			display.PrintJSON("error", "The --yes flag is required when using --json to prevent the terminal from hanging", nil, fmt.Errorf("missing --yes flag"))
 			return
 		}
 
-		if !skipConfirm {
+		if !shouldSkip {
 			fmt.Println(" WARNING: You are going to overwrite files in the specific directory. Are you sure? [y/n]:")
 			var response string
 			fmt.Scanln(&response)
