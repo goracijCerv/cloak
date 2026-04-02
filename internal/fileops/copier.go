@@ -119,9 +119,6 @@ func copyFile(originPath string, destDir string, rootProject string) (string, st
 		os.Remove(destPath) // Borramos el archivo corrupto
 		return "", "", fmt.Errorf("verification failed for %q: expected %d bytes, wrote %d bytes", originPath, expectedSize, writtenBytes)
 	}
-	// if _, err = io.Copy(dest, origin); err != nil {
-	// 	return "", "", fmt.Errorf("failed to copy %q to %q: %w", originPath, destPath, err)
-	// }
 
 	return filepath.Clean(relativePath), filepath.Base(destPath), nil
 

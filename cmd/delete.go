@@ -82,8 +82,8 @@ func executeDelete() {
 		backkUpsPaths, err := fileops.AllBackUpsPaths("", "")
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to get all the back up of the working directory: %v", err))
-			if outputJSON && !deleteSkipConfirm {
-				display.PrintJSON("error", "The --yes flag is required when using --json to prevent the terminal from hanging", nil, fmt.Errorf("missing --yes flag"))
+			if outputJSON {
+				display.PrintJSON("error", "Failed to get backups for this directory", nil, err)
 				return
 			}
 			switch {

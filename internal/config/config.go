@@ -25,7 +25,7 @@ func Load() (*AppConfig, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return createDefualtConfig(cloakDir, configPath)
+			return createDefaultConfig(cloakDir, configPath)
 		}
 
 		return nil, err
@@ -39,7 +39,7 @@ func Load() (*AppConfig, error) {
 	return &cfg, nil
 }
 
-func createDefualtConfig(cloakDir, configPath string) (*AppConfig, error) {
+func createDefaultConfig(cloakDir, configPath string) (*AppConfig, error) {
 	if err := os.MkdirAll(cloakDir, 0755); err != nil {
 		return nil, err
 	}
