@@ -31,6 +31,25 @@ var backupCmd = &cobra.Command{
 			return
 		}
 
+		_, err := os.Stat(gitDirectory)
+		if err != nil {
+			if os.IsNotExist(err) {
+				if outputJSON {
+					display.PrintJSON("error", "The given directory does not exist", nil, err)
+					return
+				}
+				fmt.Println("The given directory does not exist:", gitDirectory)
+				return
+			}
+			logger.Error(fmt.Sprintf("failed to check the git directory %s: %v", gitDirectory, err))
+			if outputJSON {
+				display.PrintJSON("error", "Something went wrong checking the directory", nil, err)
+				return
+			}
+			fmt.Println("Something went wrong. For more info check the log file.")
+			return
+		}
+
 		if dryRun {
 			executeDryRun()
 			return
