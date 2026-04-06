@@ -31,8 +31,8 @@ func TestValidatePath(t *testing.T) {
 	})
 
 	t.Run("Relative path", func(t *testing.T) {
-		if err := validatePath("una/ruta/relativa"); !errors.Is(err, ErrNoAbsolute) {
-			t.Errorf("wanted ErrNoAbsolute, obtuve %v", err)
+		if err := validatePath("a/relative/path"); !errors.Is(err, ErrNoAbsolute) {
+			t.Errorf("wanted ErrNoAbsolute, got %v", err)
 		}
 	})
 

@@ -94,9 +94,9 @@ func TestAllBackUpsPaths_DateFilters(t *testing.T) {
 	os.Chdir(projectDir)
 	defer os.Chdir(originalWd)
 
-	createBackupWithDate(t, backupDir, "my_project", "enero", "2026-01-15T10:00:00Z")
-	createBackupWithDate(t, backupDir, "my_project", "febrero", "2026-02-15T10:00:00Z")
-	createBackupWithDate(t, backupDir, "my_project", "marzo", "2026-03-15T10:00:00Z")
+	createBackupWithDate(t, backupDir, "my_project", "janaury", "2026-01-15T10:00:00Z")
+	createBackupWithDate(t, backupDir, "my_project", "february", "2026-02-15T10:00:00Z")
+	createBackupWithDate(t, backupDir, "my_project", "march", "2026-03-15T10:00:00Z")
 
 	t.Run("Filtering --after (after janaury)", func(t *testing.T) {
 		paths, err := AllBackUpsPaths("2026-01-31", "")

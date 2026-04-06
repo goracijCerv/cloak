@@ -42,7 +42,7 @@ func TestSanitizeFolderName(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := sanitizeFolderName(tc.input, tc.maxLen)
 			if result != tc.expected {
-
+				t.Errorf("expected %q, got %q", tc.expected, result)
 			}
 		})
 	}
@@ -64,7 +64,7 @@ func TestBuildOutPutDir(t *testing.T) {
 		}
 	})
 
-	t.Run(" output dir (usinf parent folder)", func(t *testing.T) {
+	t.Run("default output dir (using parent folder)", func(t *testing.T) {
 		finalDir, _, err := BuildOutPutDir("", &originDir, "test_msg")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
