@@ -70,7 +70,10 @@ var listCmd = &cobra.Command{
 			fmt.Fprintf(w, "%s\t%d\t%s\t%s\n", b.Name, b.FileCount, b.Path, formattedTime)
 		}
 
-		w.Flush()
+		err = w.Flush()
+		if err != nil {
+			fmt.Println(err)
+		}
 	},
 }
 

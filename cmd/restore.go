@@ -32,7 +32,7 @@ var restoreCmd = &cobra.Command{
 		if !shouldSkip {
 			fmt.Println(" WARNING: You are going to overwrite files in the specific directory. Are you sure? [y/n]:")
 			var response string
-			fmt.Scanln(&response)
+			_, _ = fmt.Scanln(&response)
 			response = strings.ToLower(strings.TrimSpace(response))
 
 			if response != "y" && response != "yes" {
@@ -51,7 +51,15 @@ func init() {
 	restoreCmd.Flags().StringVarP(&restoreTargetDir, "dir", "d", actualDirectory, "Target git repository to restore the backup into.")
 	restoreCmd.Flags().StringVarP(&backupDirectory, "back", "b", "", "Backup directory to get the files that will be restore.")
 	restoreCmd.Flags().BoolVarP(&skipConfirm, "yes", "y", false, "Avoid asking the user for confirmation if they are sure they want to perform the restore.")
-	restoreCmd.MarkFlagRequired("back")
+	err := restoreCmd.MarkFlagRequired("back")
+	if err != nil {
+		if outputJSON {
+			display.PrintJSON("error", err.Error(), nil, err)
+			return
+		}
+		fmt.Println(err)
+		return
+	}
 }
 
 func executeRestore() {

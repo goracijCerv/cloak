@@ -17,7 +17,7 @@ func Init() error {
 	}
 
 	cloakDir := filepath.Join(configDir, "cloak")
-	if err := os.MkdirAll(cloakDir, 0755); err != nil {
+	if err := os.MkdirAll(cloakDir, 0750); err != nil {
 		return fmt.Errorf("could not create cloak config directory: %w", err)
 	}
 
@@ -28,7 +28,8 @@ func Init() error {
 		fmt.Fprintf(os.Stderr, "warning: could not rotate log file: %v\n", err)
 	}
 
-	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	// #nosec G304 -- This tool needs to read arbitrary files by design
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return fmt.Errorf("could not open log file: %w", err)
 	}

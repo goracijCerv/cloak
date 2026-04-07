@@ -1,0 +1,86 @@
+name: Build and Release
+
+# Se ejecuta automáticamente cuando creas un nuevo tag en GitHub que empiece con "v"
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # =========================================================
+  # TRABAJO 1: COMPILAR LOS BINARIOS NORMALES PARA TODOS LOS SO
+  # =========================================================
+  build-binaries:
+    name: Build pure binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          BINARY_NAME=cloak_${{ matrix.goos }}_${{ matrix.goarch }}
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            BINARY_NAME=${BINARY_NAME}.exe
+          fi
+          # Compila y reduce el tamaño del binario
+          go build -ldflags="-s -w" -o $BINARY_NAME main.go
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: cloak_${{ matrix.goos }}_${{ matrix.goarch }}*
+
+  # =========================================================
+  # TRABAJO 2: CONSTRUIR LOS INSTALADORES MSI PARA WINDOWS
+  # =========================================================
+  build-msi:
+    name: Build Windows MSI Installers
+    runs-on: windows-latest
+    needs: build-binaries # Solo se ejecuta si los binarios normales terminaron bien
+    strategy:
+      matrix:
+        # Aquí le decimos que haga un MSI para amd64 y otro para arm64
+        goarch: [amd64, arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+
+      - name: Build Windows binary for MSI
+        env:
+          GOOS: windows
+          GOARCH: ${{ matrix.goarch }}
+        # Lo compilamos temporalmente con el nombre genérico "cloak.exe"
+        run: go build -ldflags="-s -w" -o cloak.exe main.go
+
+      - name: Build MSI with WiX Toolset
+        run: |
+          # 1. Compila el archivo XML (.wxs)
+          candle.exe installer.wxs
+          
+          # 2. Genera el instalador pasándole la arquitectura actual al nombre del archivo
+          light.exe -ext WixUIExtension installer.wixobj -o Cloak_Installer_${{ matrix.goarch }}.msi
+
+      - name: Upload MSI to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Cloak_Installer_${{ matrix.goarch }}.msi

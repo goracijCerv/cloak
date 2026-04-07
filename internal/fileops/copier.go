@@ -82,6 +82,7 @@ func copyFile(originPath string, destDir string, rootProject string) (string, st
 	}
 
 	//Starting to make the copy
+	// #nosec G304 -- This tool needs to read arbitrary files by design
 	origin, err := os.Open(originPath)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to open source file %q: %w", originPath, err)
@@ -95,7 +96,7 @@ func copyFile(originPath string, destDir string, rootProject string) (string, st
 		return "", "", fmt.Errorf("failed to read source file info %q: %w", originPath, err)
 	}
 	expectedSize := originInfo.Size()
-
+	// #nosec G304 -- This tool needs to read arbitrary files by design
 	dest, err := os.Create(destPath)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create destination file %q: %w", destPath, err)
@@ -116,7 +117,9 @@ func copyFile(originPath string, destDir string, rootProject string) (string, st
 	}
 
 	if writtenBytes != expectedSize {
-		os.Remove(destPath) // remove the corrupted file
+		if err := os.Remove(destPath); err != nil {
+			return "", "", err
+		} // remove the corrupted file
 		return "", "", fmt.Errorf("verification failed for %q: expected %d bytes, wrote %d bytes", originPath, expectedSize, writtenBytes)
 	}
 
@@ -161,7 +164,7 @@ func CreateNewBackUp(files []string, finalOutPutDir string, originDir *string, t
 
 	//Creating directory
 	if _, err := os.Stat(finalOutPutDir); errors.Is(err, os.ErrNotExist) {
-		if err := os.MkdirAll(finalOutPutDir, os.ModePerm); err != nil {
+		if err := os.MkdirAll(finalOutPutDir, 0750); err != nil {
 			return fmt.Errorf("%w %q: %w", ErrFaildedBackDir, finalOutPutDir, err)
 		}
 	}
@@ -194,7 +197,7 @@ func CreateNewBackUp(files []string, finalOutPutDir string, originDir *string, t
 	}
 
 	manifestPath := filepath.Join(finalOutPutDir, "manifest.json")
-	err = os.WriteFile(manifestPath, jsonData, 0644)
+	err = os.WriteFile(manifestPath, jsonData, 0600)
 	if err != nil {
 		return fmt.Errorf("%w :%w", ErrFailedManFile, err)
 	}
@@ -209,6 +212,7 @@ func CreateNewBackUp(files []string, finalOutPutDir string, originDir *string, t
 // read the manifest.json file
 func readManifest(backupDir string) (*Manifest, error) {
 	manifestPath := filepath.Join(backupDir, "manifest.json")
+	// #nosec G304 -- This tool needs to read arbitrary files by design
 	file, err := os.Open(manifestPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -238,11 +242,12 @@ func restoreFile(fileToRestore string, destinyPath string) error {
 
 	//we check that the directory exist
 	dir := filepath.Dir(destinyPath)
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create directories %q: %w", dir, err)
 	}
 
-	//making the copy
+	//making the
+	// #nosec G304 -- This tool needs to read arbitrary files by design
 	origin, err := os.Open(fileToRestore)
 	if err != nil {
 		return fmt.Errorf("failed to open source file %q: %w", fileToRestore, err)
@@ -257,6 +262,7 @@ func restoreFile(fileToRestore string, destinyPath string) error {
 	}
 
 	expectedSize := originInfo.Size()
+	// #nosec G304 -- This tool needs to read arbitrary files by design
 	dest, err := os.Create(destinyPath)
 	if err != nil {
 		return fmt.Errorf("failed to create destination file %q: %w", destinyPath, err)
@@ -277,7 +283,9 @@ func restoreFile(fileToRestore string, destinyPath string) error {
 	}
 
 	if writtenBytes != expectedSize {
-		os.Remove(destinyPath) // remove the corrupted file
+		if err := os.Remove(destinyPath); err != nil {
+			return err
+		} // remove the corrupted file
 		return fmt.Errorf("verification failed for %q: expected %d bytes, wrote %d bytes", fileToRestore, expectedSize, writtenBytes)
 	}
 

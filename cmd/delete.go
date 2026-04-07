@@ -43,7 +43,7 @@ Examples:
 				return
 			}
 			fmt.Println("You must specify what to delete (--back, --all, --before, or --after).")
-			cmd.Help()
+			_ = cmd.Help()
 			return
 		}
 
@@ -178,7 +178,7 @@ func confirmDeletion(paths []string) bool {
 	}
 	fmt.Println("Are you sure? [y/n]:")
 	var response string
-	fmt.Scanln(&response)
+	_, _ = fmt.Scanln(&response)
 	response = strings.ToLower(strings.TrimSpace(response))
 	return response == "y" || response == "yes"
 }

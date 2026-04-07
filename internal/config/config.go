@@ -21,7 +21,7 @@ func Load() (*AppConfig, error) {
 
 	cloakDir := filepath.Join(configDir, "cloak")
 	configPath := filepath.Join(cloakDir, "config.json")
-
+	// #nosec G304 -- This tool needs to read arbitrary files by design
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -40,7 +40,7 @@ func Load() (*AppConfig, error) {
 }
 
 func createDefaultConfig(cloakDir, configPath string) (*AppConfig, error) {
-	if err := os.MkdirAll(cloakDir, 0755); err != nil {
+	if err := os.MkdirAll(cloakDir, 0750); err != nil {
 		return nil, err
 	}
 
@@ -55,7 +55,7 @@ func createDefaultConfig(cloakDir, configPath string) (*AppConfig, error) {
 		return nil, err
 	}
 
-	if err := os.WriteFile(configPath, jsonData, 0644); err != nil {
+	if err := os.WriteFile(configPath, jsonData, 0600); err != nil {
 		return nil, err
 	}
 

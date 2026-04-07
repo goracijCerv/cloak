@@ -1,6 +1,6 @@
-# 🧥 Cloak
+# Cloak
 
-> **A safe haven for your work-in-progress code.**
+> **A safe haven for your work-in-progress code.**  
 > Cloak safely backs up untracked or modified files in your Git repository before you perform dangerous operations like `git reset --hard`, `git clean`, or messy branch switches.
 
 ---
@@ -9,6 +9,7 @@
 
 * [💡 Why Cloak?](#-why-cloak)
 * [✨ Features](#-features)
+* [🚀 Installation](#-installation)
 * [📖 Usage Examples](#-usage-examples)
 * [⚙️ Global Configuration](#️-global-configuration)
 * [🤖 Automation and CI/CD](#-automation-and-cicd)
@@ -39,19 +40,19 @@ Cloak solves this by:
 
 ## ✨ Features
 
-* 🛡️ **Fail-Safe Restoration**
+* 🛡️ **Fail-Safe Restoration**  
   Uses a strict `manifest.json` system to restore files to their exact original paths.
 
-* ⚡ **Zero Bloat**
+* ⚡ **Zero Bloat**  
   Written in pure Go using only the standard library (plus `cobra` for CLI).
 
-* 🤖 **CI/CD Ready**
+* 🤖 **CI/CD Ready**  
   Universal `--json` flag for machine-readable output.
 
-* ⚙️ **Global Configuration**
+* ⚙️ **Global Configuration**  
   Auto-generates a `config.json` for custom defaults.
 
-* 🧹 **Smart Retention**
+* 🧹 **Smart Retention**  
   Powerful cleanup filters:
 
   * `--before`
@@ -60,15 +61,47 @@ Cloak solves this by:
 
 ---
 
+## 🚀 Installation
 
+Cloak provides zero-configuration installers for all major platforms.
+
+### 🍎 macOS & 🐧 Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/goracijCerv/cloak/main/install.sh | bash
+```
+
+---
+
+### 🪟 Windows
+
+#### Option 1: PowerShell (Recommended)
+
+```powershell
+irm https://raw.githubusercontent.com/goracijCerv/cloak/main/install.ps1 | iex
+```
+
+> You may need to restart your terminal after installation to refresh the PATH.
+
+#### Option 2: MSI Installer
+
+1. Go to the Releases page.
+2. Download the `.msi` file for your architecture (amd64 or arm64).
+3. Run the installer and follow the setup wizard.
+
+---
+
+### 🐹 Go Developers (Any OS)
+
+```bash
+go install github.com/goracijCerv/cloak@latest
+```
 
 ---
 
 ## 📖 Usage Examples
 
 Cloak automatically detects the Git repository in your current directory.
-
----
 
 ### 📦 Backup files
 
@@ -107,7 +140,7 @@ cloak info /path/to/backup
 cloak restore --back /path/to/backup
 ```
 
-⚠️ You will be prompted before overwriting files.
+> ⚠️ You will be prompted before overwriting files.
 
 ---
 
@@ -130,8 +163,8 @@ cloak delete --all --yes
 
 On first run, Cloak creates:
 
-* **Linux/macOS:** `~/.config/cloak/config.json`
-* **Windows:** `%AppData%\\cloak\\config.json`
+- Linux/macOS: `~/.config/cloak/config.json`
+- Windows: `%AppData%\cloak\config.json`
 
 Example:
 
@@ -170,7 +203,7 @@ Example output:
 }
 ```
 
-⚠️ Use `--yes` with destructive commands to avoid blocking:
+> ⚠️ Use `--yes` with destructive commands to avoid blocking:
 
 ```bash
 cloak delete --all --yes --json
@@ -191,8 +224,8 @@ cloak logs --tail 20
 cloak logs --clear
 ```
 
-* Auto-rotated logs (max 5MB)
-* Tracks internal errors and operations
+- Auto-rotated logs (max 5MB)
+- Tracks internal errors and operations
 
 ---
 

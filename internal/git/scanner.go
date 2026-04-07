@@ -78,6 +78,7 @@ func GetFiles(dir *string) ([]string, error) {
 // Accepts multiple flags to make the function more flexible
 func runGitLsFiles(dir string, flags ...string) ([]string, error) {
 	args := append([]string{"ls-files"}, flags...)
+	// #nosec G204 -- The git command is safe in this CLI context
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
 
@@ -89,6 +90,7 @@ func runGitLsFiles(dir string, flags ...string) ([]string, error) {
 }
 
 func checkIsGitRepo(dir string) error {
+	// #nosec G204 -- The git command is safe in this CLI context
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
 	cmd.Dir = dir
 
@@ -101,6 +103,7 @@ func checkIsGitRepo(dir string) error {
 
 func getStagedFiles(dir string, filter string) ([]string, error) {
 	flag := fmt.Sprintf("--diff-filter=%s", filter)
+	// #nosec G204 -- The git command is safe in this CLI context
 	cmd := exec.Command("git", "diff", "--name-only", "--cached", flag)
 	cmd.Dir = dir
 

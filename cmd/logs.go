@@ -45,7 +45,7 @@ var logsCmd = &cobra.Command{
 		}
 
 		if clearLogs {
-			if err := os.WriteFile(logPath, []byte{}, 0644); err != nil {
+			if err := os.WriteFile(logPath, []byte{}, 0600); err != nil {
 				if outputJSON {
 					display.PrintJSON("error", "Failed to clear log file", nil, err)
 					return
@@ -113,6 +113,7 @@ func init() {
 }
 
 func getAllLines(logpath string) ([]string, error) {
+	// #nosec G304 -- This tool needs to read arbitrary files by design
 	content, err := os.ReadFile(logpath)
 	if err != nil {
 		return nil, err
@@ -131,6 +132,7 @@ func getAllLines(logpath string) ([]string, error) {
 }
 
 func getTailLines(logPath string, n int) ([]string, error) {
+	// #nosec G304 -- This tool needs to read arbitrary files by design
 	f, err := os.Open(logPath)
 	if err != nil {
 		return nil, err

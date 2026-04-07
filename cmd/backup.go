@@ -246,7 +246,7 @@ func executeBackup() {
 
 func isWritable(path string) error {
 	tempFile := filepath.Join(path, ".cloak_write_test")
-
+	// #nosec G304 -- This tool needs to read arbitrary files by design
 	file, err := os.Create(tempFile)
 	if err != nil {
 		if errors.Is(err, os.ErrPermission) {
@@ -255,8 +255,13 @@ func isWritable(path string) error {
 		return err
 	}
 
-	file.Close()
-	os.Remove(tempFile)
-
+	err = file.Close()
+	if err != nil {
+		return err
+	}
+	err = os.Remove(tempFile)
+	if err != nil {
+		return err
+	}
 	return nil
 }
