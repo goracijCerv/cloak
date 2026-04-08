@@ -18,7 +18,7 @@ echo "Detected OS=$OS, Architecture=$ARCH"
 
 #2. DEFINE THE URL AND DOWNLOAD THE LAST REALSE ON GITHUB
 BINARY_NAME="cloak_${OS}_${ARCH}"
-DOWNLOAD_URL="https://github.com/goracijCerv/cloak/releases/latest/download/$BINARY_NAME"S
+DOWNLOAD_URL="https://github.com/goracijCerv/cloak/releases/latest/download/$BINARY_NAME"
 #DONWLOAD FILE
 echo "Downloading Cloak from GitHub..."
 curl -fsSL -o cloak "$DOWNLOAD_URL"
