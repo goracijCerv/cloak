@@ -25,7 +25,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: 'stable'
 
       - name: Build
         env:
@@ -63,7 +63,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: 'stable'
 
       - name: Build Windows binary for MSI
         env:
@@ -71,14 +71,16 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         # Lo compilamos temporalmente con el nombre genérico "cloak.exe"
         run: go build -ldflags="-s -w" -o cloak.exe main.go
+      
+      - name: Install WiX Toolset
+        run : choco install wixtoolset -y
 
       - name: Build MSI with WiX Toolset
         run: |
-          # 1. Compila el archivo XML (.wxs)
-          candle.exe installer.wxs
-          
-          # 2. Genera el instalador pasándole la arquitectura actual al nombre del archivo
+          $version = "${{ github.ref_name }}".TrimStart("v") + ".0"
+          candle.exe installer.wxs -dVersion=$version
           light.exe -ext WixUIExtension installer.wixobj -o Cloak_Installer_${{ matrix.goarch }}.msi
+
 
       - name: Upload MSI to Release
         uses: softprops/action-gh-release@v2

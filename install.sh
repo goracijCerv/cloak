@@ -2,7 +2,7 @@
 set -e
 
 #1. check operative system
-OS = "$(uname -s | tr '[:upper:]' '[:lower:]')"
+OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
 
 if [ "$ARCH" = "x86_64" ]; then 
@@ -18,11 +18,11 @@ echo "Detected OS=$OS, Architecture=$ARCH"
 
 #2. DEFINE THE URL AND DOWNLOAD THE LAST REALSE ON GITHUB
 BINARY_NAME="cloak_${OS}_${ARCH}"
-DOWNLOAD_URL="https://github.com/goracijCerv/cloak/releases"
-
+DOWNLOAD_URL="https://github.com/goracijCerv/cloak/releases/latest/download/$BINARY_NAME"S
 #DONWLOAD FILE
 echo "Downloading Cloak from GitHub..."
-curl -sl -o cloak "$DOWNLOAD_URL"
+curl -fsSL -o cloak "$DOWNLOAD_URL"
+
 
 #EXECUTION PERMISIONS
 chmod +x cloak
