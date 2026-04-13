@@ -78,22 +78,20 @@ jobs:
       - name: Install WiX Toolset
         run : choco install wixtoolset -y
 
-      - name: Debug installer.wxs
-        run: |
-          Get-Content installer.wxs
-
       - name: Build MSI with WiX Toolset
         run: |
-          $raw = "${{ github.ref_name }}".TrimStart("v")
+          $raw = "${{ github.ref_name }}".TrimStart('v')
 
-          $parts = $raw.Split(".")
-          while ($parts.Count -lt 4) {
+          $parts = $raw -split '\.'
+          while ($parts.Length -lt 4) {
             $parts += "0"
           }
+
           $version = ($parts -join ".")
           Write-Host "Version: $version"
-          candle.exe installer.wxs -dVersion=$version
-          light.exe -ext WixUIExtension installer.wixobj -o Cloak_Installer_${{ matrix.goarch }}.msi
+
+          candle.exe installer.wxs -dVersion="$version"
+          light.exe -ext WixUIExtension installer.wixobj -o "Cloak_Installer_${{ matrix.goarch }}.msi"
 
 
       - name: Upload MSI to Release
