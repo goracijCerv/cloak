@@ -78,6 +78,10 @@ jobs:
       - name: Install WiX Toolset
         run : choco install wixtoolset -y
 
+      - name: Debug installer.wxs
+        run: |
+          Get-Content installer.wxs
+
       - name: Build MSI with WiX Toolset
         run: |
           $raw = "${{ github.ref_name }}".TrimStart("v")
