@@ -25,7 +25,10 @@
 [![CI/CD Ready](https://img.shields.io/badge/CI%2FCD-JSON_Ready-blue)](#-automation-and-cicd)
 
 ---
-
+<div align="center">
+  <img src="assets/demo.gif" alt="Cloak Demo" width="800"/>
+</div>
+---
 ## 💡 Why Cloak?
 
 Have you ever lost hours of work because you forgot to commit a new file before a `git reset --hard`?
